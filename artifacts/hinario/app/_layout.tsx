@@ -1,4 +1,4 @@
-import {
+﻿import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
@@ -29,9 +29,10 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const colors = useColors();
+
   return (
-      <Stack
-        screenOptions={{
+    <Stack
+      screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.foreground,
         headerTitleStyle: {
@@ -42,10 +43,12 @@ function RootLayoutNav() {
         headerBackTitle: "Voltar",
         contentStyle: { backgroundColor: colors.background },
       }}
-      >
+    >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ title: "Login" }} />
       <Stack.Screen name="admin" options={{ title: "Administração" }} />
+      <Stack.Screen name="admin-cadastro" options={{ title: "Cadastro" }} />
+      <Stack.Screen name="admin-editar/[numero]" options={{ title: "Edição" }} />
       <Stack.Screen
         name="hino/[numero]/index"
         options={{ title: "", headerTransparent: false }}

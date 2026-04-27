@@ -8,12 +8,10 @@ export type AuthUser = {
 };
 
 export type HinoPayload = {
-  numero?: number;
   titulo: string;
   letra: string;
   tom?: string | null;
-  tipo?: string | null;
-  possuiCifra?: boolean;
+  cifra?: string;
 };
 
 function normalizeBase(url: string): string {
@@ -89,12 +87,54 @@ export async function listHinos(query = "") {
   }>(`/hinos${suffix}`);
 }
 
-export async function upsertHino(
+export async function getHino(numero: number) {
+  return apiFetch<{
+    item: {
+      numero: number;
+      titulo: string;
+      letra: string;
+      tom: string | null;
+      tipo: string | null;
+      possuiCifra: boolean;
+      cifra: string | null;
+    };
+  }>(`/hinos/${numero}`);
+}
+
+export async function getNextHinoNumber(token: string) {
+  return apiFetch<{ numero: number }>("/hinos/next-number", { token });
+}
+
+export async function createHino(payload: HinoPayload, token: string) {
+  return apiFetch<{
+    item: {
+      numero: number;
+      titulo: string;
+      letra: string;
+      tom: string | null;
+      possuiCifra: boolean;
+    };
+  }>("/hinos", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateHino(
   numero: number,
-  payload: Omit<HinoPayload, "numero">,
+  payload: HinoPayload,
   token: string,
 ) {
-  return apiFetch<{ item: unknown }>(`/hinos/${numero}`, {
+  return apiFetch<{
+    item: {
+      numero: number;
+      titulo: string;
+      letra: string;
+      tom: string | null;
+      possuiCifra: boolean;
+    };
+  }>(`/hinos/${numero}`, {
     method: "PUT",
     token,
     body: JSON.stringify(payload),
@@ -106,29 +146,4 @@ export async function deleteHino(numero: number, token: string) {
     method: "DELETE",
     token,
   });
-}
-
-export async function upsertCifra(
-  numero: number,
-  conteudo: string,
-  token: string,
-) {
-  return apiFetch<{ item: unknown }>(`/hinos/${numero}/cifra`, {
-    method: "PUT",
-    token,
-    body: JSON.stringify({ conteudo }),
-  });
-}
-
-export async function deleteCifra(numero: number, token: string) {
-  return apiFetch<void>(`/hinos/${numero}/cifra`, {
-    method: "DELETE",
-    token,
-  });
-}
-
-export async function getCifra(numero: number) {
-  return apiFetch<{
-    item: { hinoNumero: number; conteudo: string; atualizadoEm: string };
-  }>(`/hinos/${numero}/cifra`);
 }

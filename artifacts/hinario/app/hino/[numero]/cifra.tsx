@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cifras } from "@/data/cifras";
 import { useHinos } from "@/contexts/HinosContext";
 import { useColors } from "@/hooks/useColors";
-import { getCifra } from "@/lib/api";
+import { getHino } from "@/lib/api";
 import {
   formatarSemitons,
   transporCifra,
@@ -42,10 +42,10 @@ export default function CifraScreen() {
     if (!Number.isInteger(num) || num <= 0) return;
 
     setLoading(true);
-    void getCifra(num)
+    void getHino(num)
       .then((response) => {
         if (!active) return;
-        setCifraOriginal(response.item.conteudo);
+        setCifraOriginal(response.item.cifra ?? cifras[num] ?? null);
       })
       .catch(() => {
         if (!active) return;

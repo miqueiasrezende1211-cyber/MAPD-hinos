@@ -125,8 +125,12 @@ Credenciais iniciais (semente):
 
 Após login, a tela **Administração** permite:
 
-- Cadastrar/editar/excluir hinos
-- Cadastrar/editar/excluir cifras
+- Abrir **Gerenciamento** (lista de hinos com ícone de edição em cada linha)
+- Usar o ícone `+` para abrir a tela separada de **Cadastro**
+- Editar em tela separada de **Edição**
+- Salvar **letra + cifra no mesmo formulário** (uma única ação)
+- Cadastrar com **número automático** (sem digitar número manualmente)
+- Campo `tipo` não é usado no cadastro/edição
 
 ## API (resumo)
 
@@ -141,10 +145,11 @@ Protegido (Bearer token):
 
 - `POST /api/auth/users` (admin)
 - `POST /api/hinos`
+- `GET /api/hinos/next-number`
 - `PUT /api/hinos/:numero`
 - `DELETE /api/hinos/:numero`
-- `PUT /api/hinos/:numero/cifra`
-- `DELETE /api/hinos/:numero/cifra`
+
+Observação: os endpoints de escrita de hinos já aceitam/salvam cifra junto no payload.
 
 Auth:
 

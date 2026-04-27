@@ -7,17 +7,24 @@ import { requireAuth, requireRole } from "../middlewares/auth";
 const router: IRouter = Router();
 
 const hinoBodySchema = z.object({
-  numero: z.number().int().positive(),
+  numero: z.number().int().positive().optional(),
   titulo: z.string().trim().min(1).max(300),
   letra: z.string().trim().min(1),
   tom: z.string().trim().min(1).max(20).nullable().optional(),
-  tipo: z.string().trim().min(1).max(80).nullable().optional(),
-  possuiCifra: z.boolean().optional(),
+  cifra: z.string().optional(),
 });
 
 const cifraBodySchema = z.object({
   conteudo: z.string().trim().min(1),
 });
+
+async function nextHinoNumber(): Promise<number> {
+  const [row] = await db
+    .select({ maxNumero: sql<number>`COALESCE(MAX(${hinosTable.numero}), 0)` })
+    .from(hinosTable);
+
+  return (row?.maxNumero ?? 0) + 1;
+}
 
 router.get("/hinos", async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
@@ -48,6 +55,16 @@ router.get("/hinos", async (req, res) => {
 
   return res.json({ items: rows });
 });
+
+router.get(
+  "/hinos/next-number",
+  requireAuth,
+  requireRole(["admin", "editor"]),
+  async (_req, res) => {
+    const numero = await nextHinoNumber();
+    return res.json({ numero });
+  },
+);
 
 router.get("/hinos/:numero", async (req, res) => {
   const numero = Number(req.params.numero);
@@ -105,24 +122,34 @@ router.post(
     }
 
     const body = parsed.data;
+    const numero = body.numero ?? (await nextHinoNumber());
+    const cifraTexto = body.cifra?.trim() ?? "";
+    const hasCifra = cifraTexto.length > 0;
     try {
       const [created] = await db
         .insert(hinosTable)
         .values({
-          numero: body.numero,
+          numero,
           titulo: body.titulo,
           letra: body.letra,
           tom: body.tom ?? null,
-          tipo: body.tipo ?? null,
-          possuiCifra: body.possuiCifra ?? false,
+          tipo: null,
+          possuiCifra: hasCifra,
         })
         .returning();
+
+      if (hasCifra) {
+        await db.insert(cifrasTable).values({
+          hinoNumero: numero,
+          conteudo: cifraTexto,
+        });
+      }
 
       return res.status(201).json({ item: created });
     } catch {
       return res
         .status(409)
-        .json({ error: "Unable to create hino (number may already exist)" });
+        .json({ error: "Unable to create hino" });
     }
   },
 );
@@ -143,6 +170,8 @@ router.put(
     }
 
     const body = parsed.data;
+    const cifraTexto = body.cifra?.trim() ?? "";
+    const hasCifra = cifraTexto.length > 0;
     const [saved] = await db
       .insert(hinosTable)
       .values({
@@ -150,8 +179,8 @@ router.put(
         titulo: body.titulo,
         letra: body.letra,
         tom: body.tom ?? null,
-        tipo: body.tipo ?? null,
-        possuiCifra: body.possuiCifra ?? false,
+        tipo: null,
+        possuiCifra: hasCifra,
       })
       .onConflictDoUpdate({
         target: hinosTable.numero,
@@ -159,11 +188,23 @@ router.put(
           titulo: body.titulo,
           letra: body.letra,
           tom: body.tom ?? null,
-          tipo: body.tipo ?? null,
-          possuiCifra: body.possuiCifra ?? false,
+          tipo: null,
+          possuiCifra: hasCifra,
         },
       })
       .returning();
+
+    if (hasCifra) {
+      await db
+        .insert(cifrasTable)
+        .values({ hinoNumero: numero, conteudo: cifraTexto })
+        .onConflictDoUpdate({
+          target: cifrasTable.hinoNumero,
+          set: { conteudo: cifraTexto, atualizadoEm: sql`NOW()` },
+        });
+    } else {
+      await db.delete(cifrasTable).where(eq(cifrasTable.hinoNumero, numero));
+    }
 
     return res.json({ item: saved });
   },
