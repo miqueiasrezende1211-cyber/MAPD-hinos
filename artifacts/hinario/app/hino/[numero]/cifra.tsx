@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -13,8 +14,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cifras } from "@/data/cifras";
-import { hinos } from "@/data/hinos";
+import { useHinos } from "@/contexts/HinosContext";
 import { useColors } from "@/hooks/useColors";
+import { getCifra } from "@/lib/api";
 import {
   formatarSemitons,
   transporCifra,
@@ -27,9 +29,36 @@ export default function CifraScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { numero } = useLocalSearchParams<{ numero: string }>();
+  const { hinos } = useHinos();
   const num = Number(numero);
   const hino = hinos.find((h) => h.numero === num);
-  const cifraOriginal = cifras[num];
+  const [cifraOriginal, setCifraOriginal] = useState<string | null>(
+    cifras[num] ?? null,
+  );
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!Number.isInteger(num) || num <= 0) return;
+
+    setLoading(true);
+    void getCifra(num)
+      .then((response) => {
+        if (!active) return;
+        setCifraOriginal(response.item.conteudo);
+      })
+      .catch(() => {
+        if (!active) return;
+        setCifraOriginal(cifras[num] ?? null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [num]);
 
   const [fontIdx, setFontIdx] = useState(2);
   const [semitons, setSemitons] = useState(0);
@@ -63,6 +92,19 @@ export default function CifraScreen() {
   };
 
   const webBottomInset = Platform.OS === "web" ? 34 : 0;
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.empty,
+          { backgroundColor: colors.background, paddingTop: insets.top + 24 },
+        ]}
+      >
+        <ActivityIndicator color={colors.foreground} />
+      </View>
+    );
+  }
 
   if (!hino || !cifraOriginal) {
     return (

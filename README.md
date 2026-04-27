@@ -64,6 +64,12 @@ BASE_PATH=/__mockup
 HINARIO_PORT=8082
 EXPO_PUBLIC_DOMAIN=localhost
 EXPO_PUBLIC_REPL_ID=local
+EXPO_PUBLIC_API_URL=http://localhost:8080
+
+AUTH_SECRET=change-this-secret-in-production
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin@local.dev
+ADMIN_PASSWORD=admin12345
 ```
 
 ## Instalação
@@ -153,6 +159,13 @@ cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
 pnpm run db:seed
 ```
 
+Para criar/atualizar o usuário admin inicial:
+
+```powershell
+cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
+pnpm run db:seed:admin
+```
+
 Esse comando:
 
 - Gera o arquivo SQL de carga em `lib/db/seeds/hinos.seed.sql`
@@ -166,4 +179,5 @@ Observação: o schema atual inclui as tabelas `hinos` e `cifras`.
 pnpm run typecheck
 pnpm run build
 pnpm --filter @workspace/api-spec run codegen
+pnpm run db:seed:admin
 ```

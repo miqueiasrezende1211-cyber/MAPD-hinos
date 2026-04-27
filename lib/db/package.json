@@ -10,7 +10,8 @@
   "scripts": {
     "push": "node --env-file=../../.env ./scripts/run-drizzle-kit.mjs push --config ./drizzle.config.ts",
     "push-force": "node --env-file=../../.env ./scripts/run-drizzle-kit.mjs push --force --config ./drizzle.config.ts",
-    "seed:hinos": "node --env-file=../../.env ./scripts/load-hinos.mjs"
+    "seed:hinos": "node --env-file=../../.env ./scripts/load-hinos.mjs",
+    "seed:admin": "node --env-file=../../.env ./scripts/seed-admin.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

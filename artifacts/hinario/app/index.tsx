@@ -13,8 +13,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { hinos, type Hino } from "@/data/hinos";
+import { type Hino } from "@/data/hinos";
+import { useAuth } from "@/contexts/AuthContext";
 import { useFavoritos } from "@/contexts/FavoritosContext";
+import { useHinos } from "@/contexts/HinosContext";
 import { useColors } from "@/hooks/useColors";
 
 type HinoIndex = {
@@ -36,16 +38,6 @@ function normalize(s: string): string {
     .toLowerCase();
 }
 
-const indice: HinoIndex[] = hinos.map((h) => {
-  const letraPlana = h.letra.replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
-  return {
-    hino: h,
-    tituloNorm: normalize(h.titulo),
-    letraPlana,
-    letraNorm: normalize(letraPlana),
-  };
-});
-
 function snippet(letraPlana: string, letraNorm: string, termoNorm: string) {
   const idx = letraNorm.indexOf(termoNorm);
   if (idx === -1) return undefined;
@@ -66,9 +58,24 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { favoritos, isFavorito, toggleFavorito } = useFavoritos();
+  const { isAuthenticated } = useAuth();
+  const { hinos } = useHinos();
 
   const [busca, setBusca] = useState("");
   const [somenteFavoritos, setSomenteFavoritos] = useState(false);
+  const indice = useMemo<HinoIndex[]>(
+    () =>
+      hinos.map((h) => {
+        const letraPlana = h.letra.replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+        return {
+          hino: h,
+          tituloNorm: normalize(h.titulo),
+          letraPlana,
+          letraNorm: normalize(letraPlana),
+        };
+      }),
+    [hinos],
+  );
 
   const lista = useMemo<Resultado[]>(() => {
     const termo = busca.trim();
@@ -93,7 +100,7 @@ export default function HomeScreen() {
       }
     }
     return resultados;
-  }, [busca, somenteFavoritos, favoritos]);
+  }, [busca, somenteFavoritos, favoritos, indice]);
 
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const webBottomInset = Platform.OS === "web" ? 34 : 0;
@@ -118,36 +125,61 @@ export default function HomeScreen() {
               Hinário
             </Text>
           </View>
-          <Pressable
-            onPress={() => {
-              if (Platform.OS !== "web") {
-                Haptics.selectionAsync();
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() =>
+                router.push(isAuthenticated ? "/admin" : "/login")
               }
-              setSomenteFavoritos((v) => !v);
-            }}
-            style={({ pressed }) => [
-              styles.favToggle,
-              {
-                backgroundColor: somenteFavoritos
-                  ? colors.primary
-                  : colors.secondary,
-                opacity: pressed ? 0.85 : 1,
-                borderRadius: colors.radius,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={
-              somenteFavoritos ? "Mostrar todos" : "Mostrar favoritos"
-            }
-          >
-            <Feather
-              name="star"
-              size={18}
-              color={
-                somenteFavoritos ? colors.primaryForeground : colors.foreground
+              style={({ pressed }) => [
+                styles.favToggle,
+                {
+                  backgroundColor: colors.secondary,
+                  opacity: pressed ? 0.85 : 1,
+                  borderRadius: colors.radius,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={isAuthenticated ? "Abrir admin" : "Fazer login"}
+            >
+              <Feather
+                name={isAuthenticated ? "settings" : "log-in"}
+                size={18}
+                color={colors.foreground}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== "web") {
+                  Haptics.selectionAsync();
+                }
+                setSomenteFavoritos((v) => !v);
+              }}
+              style={({ pressed }) => [
+                styles.favToggle,
+                {
+                  backgroundColor: somenteFavoritos
+                    ? colors.primary
+                    : colors.secondary,
+                  opacity: pressed ? 0.85 : 1,
+                  borderRadius: colors.radius,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                somenteFavoritos ? "Mostrar todos" : "Mostrar favoritos"
               }
-            />
-          </Pressable>
+            >
+              <Feather
+                name="star"
+                size={18}
+                color={
+                  somenteFavoritos
+                    ? colors.primaryForeground
+                    : colors.foreground
+                }
+              />
+            </Pressable>
+          </View>
         </View>
 
         <View
@@ -362,6 +394,11 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   searchWrap: {
     flexDirection: "row",
