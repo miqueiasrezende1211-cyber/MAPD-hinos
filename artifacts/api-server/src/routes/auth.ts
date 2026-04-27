@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, usuariosTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { createAuthToken } from "../lib/token";
 import { hashPassword, verifyPassword } from "../lib/password";
@@ -30,7 +30,12 @@ router.post("/auth/login", async (req, res) => {
   const [usuario] = await db
     .select()
     .from(usuariosTable)
-    .where(and(eq(usuariosTable.email, email), eq(usuariosTable.ativo, true)))
+    .where(
+      and(
+        sql`LOWER(${usuariosTable.email}) = ${email}`,
+        eq(usuariosTable.ativo, true),
+      ),
+    )
     .limit(1);
 
   if (!usuario || !verifyPassword(senha, usuario.senhaHash)) {

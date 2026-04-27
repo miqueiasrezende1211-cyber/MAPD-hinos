@@ -1,177 +1,162 @@
 ﻿# MAPD Hinos
 
-Monorepo `pnpm` com app mobile/web de hinário, API Node.js e biblioteca de banco com Drizzle.
+Monorepo `pnpm` com app Expo (Hinário), API Express e PostgreSQL (Drizzle ORM).
 
-## Objetivo do app
+## Objetivo
 
-O produto principal é o **Hinário**:
+O app permite:
 
-- Lista hinos por número e título
-- Busca por número, título e trechos da letra
-- Exibe detalhes do hino e cifra
-- Permite favoritar hinos (persistência local via AsyncStorage)
+- Visualizar hinos e cifras sem login
+- Buscar hinos por número, título e trecho da letra
+- Favoritar hinos localmente no app
+- Fazer gestão de conteúdo (cadastro, edição e exclusão de hinos/cifras) com login admin/editor
 
-Além disso, o repositório inclui:
+## Arquitetura
 
-- **API Server** (`artifacts/api-server`): Express 5 com endpoint de saúde
-- **DB lib** (`lib/db`): conexão PostgreSQL + Drizzle
-- **Mockup Sandbox** (`artifacts/mockup-sandbox`): preview de componentes React/Vite
+- `artifacts/hinario`: app Expo (mobile/web)
+- `artifacts/api-server`: backend Express 5
+- `lib/db`: schema e acesso a banco (Drizzle)
+- `lib/api-spec`: OpenAPI
+- `lib/api-client-react` e `lib/api-zod`: código gerado de API
+- `artifacts/mockup-sandbox`: sandbox de UI com Vite
 
 ## Stack
 
 - Node.js 24
 - pnpm 10
 - TypeScript 5
-- Expo + React Native
+- Expo / React Native
 - Express 5
 - PostgreSQL + Drizzle ORM
 
-## Estrutura
+## Variáveis de ambiente
 
-- `artifacts/hinario`: app Expo (principal)
-- `artifacts/api-server`: backend Express
-- `artifacts/mockup-sandbox`: app Vite para previews
-- `lib/db`: acesso a banco e schema Drizzle
-- `lib/api-spec`: OpenAPI + geração de clients/schemas
-- `lib/api-client-react`: client React Query gerado
-- `lib/api-zod`: schemas Zod gerados
-
-## Configuração de ambiente
-
-### 1. Pré-requisitos
-
-```powershell
-node -v
-corepack enable
-corepack prepare pnpm@latest --activate
-pnpm -v
-```
-
-### 2. Variáveis de ambiente
-
-O projeto já contém:
-
-- `.env` (uso local)
-- `.env.example` (modelo versionado)
-
-Valores padrão usados localmente:
+Use `.env` (já existe) baseado no `.env.example`.
 
 ```dotenv
 PORT=8080
 DATABASE_URL=postgres://postgres:root@localhost:5432/mapd_hinos
-MOCKUP_PORT=8081
-BASE_PATH=/__mockup
-HINARIO_PORT=8082
-EXPO_PUBLIC_DOMAIN=localhost
-EXPO_PUBLIC_REPL_ID=local
-EXPO_PUBLIC_API_URL=http://localhost:8080
-
 AUTH_SECRET=change-this-secret-in-production
+
 ADMIN_NAME=Administrador
 ADMIN_EMAIL=admin@local.dev
 ADMIN_PASSWORD=admin12345
+
+HINARIO_PORT=8082
+EXPO_PUBLIC_API_URL=http://localhost:8080
+EXPO_PUBLIC_DOMAIN=localhost
+EXPO_PUBLIC_REPL_ID=local
+
+MOCKUP_PORT=8081
+BASE_PATH=/__mockup
 ```
 
 ## Instalação
-
-Instale somente na raiz do monorepo:
 
 ```powershell
 cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
 pnpm install
 ```
 
-Se aparecer aviso de build scripts ignorados (ex.: `better-sqlite3`), aprove quando necessário:
+Se o pnpm bloquear scripts nativos (ex.: `better-sqlite3`):
 
 ```powershell
 pnpm approve-builds
 ```
 
-## Execução local
+## Banco de dados (primeira subida)
 
-Abra terminais separados para cada serviço.
-
-### API Server (Express)
+1. Aplicar schema:
 
 ```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
+pnpm run db:push
+```
+
+2. Carga inicial de hinos (`hinos.json` -> SQL + upsert no PostgreSQL):
+
+```powershell
+pnpm run db:seed
+```
+
+3. Criar/atualizar usuário admin inicial:
+
+```powershell
+pnpm run db:seed:admin
+```
+
+O seed de hinos gera também:
+
+- `lib/db/seeds/hinos.seed.sql`
+
+## Execução local
+
+### API
+
+```powershell
 pnpm run api
 ```
 
-Teste:
+Health check:
 
 - `GET http://localhost:8080/api/healthz`
 
-### App Hinário (Expo)
-
-Para ambiente local (Windows), use o script que carrega `.env` automaticamente:
-
-```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-pnpm --filter @workspace/hinario run dev:local
-```
-
-Atalho pela raiz do monorepo:
+### Expo (Hinário)
 
 ```powershell
 pnpm run expo
 ```
 
-### Gerar APK (EAS Build)
-
-Primeiro, autentique no Expo:
+### Mockup Sandbox
 
 ```powershell
-pnpm dlx eas-cli login
-```
-
-Depois gere APK Android:
-
-```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-pnpm run apk
-```
-
-### Mockup Sandbox (Vite)
-
-```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
 $env:PORT="8081"
 $env:BASE_PATH="/__mockup"
 pnpm --filter @workspace/mockup-sandbox run dev
 ```
 
-## Banco de dados
+## Login e administração
 
-A lib `@workspace/db` exige `DATABASE_URL`.
+No app, use o ícone de login para entrar na área administrativa.
 
-Para aplicar schema via Drizzle:
+Credenciais iniciais (semente):
+
+- Email: valor de `ADMIN_EMAIL`
+- Senha: valor de `ADMIN_PASSWORD`
+
+Após login, a tela **Administração** permite:
+
+- Cadastrar/editar/excluir hinos
+- Cadastrar/editar/excluir cifras
+
+## API (resumo)
+
+Público:
+
+- `GET /api/healthz`
+- `GET /api/hinos`
+- `GET /api/hinos/:numero`
+- `GET /api/hinos/:numero/cifra`
+
+Protegido (Bearer token):
+
+- `POST /api/auth/users` (admin)
+- `POST /api/hinos`
+- `PUT /api/hinos/:numero`
+- `DELETE /api/hinos/:numero`
+- `PUT /api/hinos/:numero/cifra`
+- `DELETE /api/hinos/:numero/cifra`
+
+Auth:
+
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+
+## APK (EAS)
 
 ```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-pnpm run db:push
+pnpm dlx eas-cli login
+pnpm run apk
 ```
-
-Para carregar os hinos do `hinos.json` no banco (seed inicial):
-
-```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-pnpm run db:seed
-```
-
-Para criar/atualizar o usuário admin inicial:
-
-```powershell
-cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-pnpm run db:seed:admin
-```
-
-Esse comando:
-
-- Gera o arquivo SQL de carga em `lib/db/seeds/hinos.seed.sql`
-- Executa a carga no PostgreSQL com `upsert` (atualiza se o `numero` já existir)
-
-Observação: o schema atual inclui as tabelas `hinos` e `cifras`.
 
 ## Comandos úteis
 
@@ -179,5 +164,9 @@ Observação: o schema atual inclui as tabelas `hinos` e `cifras`.
 pnpm run typecheck
 pnpm run build
 pnpm --filter @workspace/api-spec run codegen
+pnpm run db:push
+pnpm run db:seed
 pnpm run db:seed:admin
+pnpm run api
+pnpm run expo
 ```

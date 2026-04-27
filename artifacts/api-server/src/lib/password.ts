@@ -8,11 +8,21 @@ export function hashPassword(password: string): string {
 
 export function verifyPassword(password: string, stored: string): boolean {
   const [salt, expectedHash] = stored.split(":");
-  if (!salt || !expectedHash) return false;
 
-  const actualHash = crypto.scryptSync(password, salt, 64).toString("hex");
-  const expected = Buffer.from(expectedHash, "hex");
-  const actual = Buffer.from(actualHash, "hex");
-  if (expected.length !== actual.length) return false;
-  return crypto.timingSafeEqual(expected, actual);
+  // Legacy fallback: accept plain-text rows created before hashing was enforced.
+  if (!salt || !expectedHash) {
+    const a = Buffer.from(String(stored), "utf8");
+    const b = Buffer.from(String(password), "utf8");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
+  try {
+    const actualHash = crypto.scryptSync(password, salt, 64).toString("hex");
+    const expected = Buffer.from(expectedHash, "hex");
+    const actual = Buffer.from(actualHash, "hex");
+    if (expected.length !== actual.length) return false;
+    return crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
 }
