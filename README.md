@@ -100,11 +100,17 @@ Teste:
 
 ### App Hinário (Expo)
 
-Use comando direto do Expo no Windows (o script `dev` atual é orientado ao Replit):
+Para ambiente local (Windows), use o script que carrega `.env` automaticamente:
 
 ```powershell
 cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-pnpm --filter @workspace/hinario exec expo start --localhost --port 8082
+pnpm --filter @workspace/hinario run dev:local
+```
+
+Atalho pela raiz do monorepo:
+
+```powershell
+pnpm run expo
 ```
 
 ### Mockup Sandbox (Vite)
