@@ -12,8 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { temCifra } from "@/data/cifras";
-import { hinos } from "@/data/hinos";
+import { useHinos } from "@/contexts/HinosContext";
 import { useFavoritos } from "@/contexts/FavoritosContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -40,12 +39,13 @@ export default function HinoDetailScreen() {
   const router = useRouter();
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const { isFavorito, toggleFavorito } = useFavoritos();
+  const { hinos } = useHinos();
 
   const hino = useMemo(
     () => hinos.find((h) => h.numero.toString() === numero),
     [numero],
   );
-  const cifraDisponivel = hino ? temCifra(hino.numero) : false;
+  const cifraDisponivel = Boolean(hino?.possuiCifra);
 
   const [fontIdx, setFontIdx] = useState(2);
   const fontSize = FONT_STEPS[fontIdx] ?? 20;

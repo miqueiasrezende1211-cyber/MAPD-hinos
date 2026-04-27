@@ -18,7 +18,9 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritosProvider } from "@/contexts/FavoritosContext";
+import { HinosProvider } from "@/contexts/HinosContext";
 import { useColors } from "@/hooks/useColors";
 
 SplashScreen.preventAutoHideAsync();
@@ -28,8 +30,8 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   const colors = useColors();
   return (
-    <Stack
-      screenOptions={{
+      <Stack
+        screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.foreground,
         headerTitleStyle: {
@@ -40,8 +42,10 @@ function RootLayoutNav() {
         headerBackTitle: "Voltar",
         contentStyle: { backgroundColor: colors.background },
       }}
-    >
+      >
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ title: "Login" }} />
+      <Stack.Screen name="admin" options={{ title: "Administração" }} />
       <Stack.Screen
         name="hino/[numero]/index"
         options={{ title: "", headerTransparent: false }}
@@ -76,13 +80,17 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <FavoritosProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </FavoritosProvider>
+          <AuthProvider>
+            <FavoritosProvider>
+              <HinosProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </HinosProvider>
+            </FavoritosProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

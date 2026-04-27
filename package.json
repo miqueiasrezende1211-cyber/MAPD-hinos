@@ -8,6 +8,7 @@
     "apk": "pnpm --filter @workspace/hinario run apk",
     "db:push": "pnpm --filter @workspace/db run push",
     "db:seed": "pnpm --filter @workspace/db run seed:hinos",
+    "db:seed:admin": "pnpm --filter @workspace/db run seed:admin",
     "api": "pnpm --filter @workspace/api-server run dev",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",

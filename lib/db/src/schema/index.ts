@@ -19,3 +19,4 @@
 
 export * from "./hinos";
 export * from "./cifras";
+export * from "./usuarios";
