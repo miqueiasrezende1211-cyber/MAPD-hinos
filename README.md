@@ -89,9 +89,7 @@ Abra terminais separados para cada serviço.
 
 ```powershell
 cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-$env:PORT="8080"
-pnpm --filter @workspace/api-server run build
-pnpm --filter @workspace/api-server run start
+pnpm run api
 ```
 
 Teste:
@@ -130,11 +128,10 @@ Para aplicar schema via Drizzle:
 
 ```powershell
 cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
-$env:DATABASE_URL="postgres://postgres:root@localhost:5432/mapd_hinos"
-pnpm --filter @workspace/db run push
+pnpm run db:push
 ```
 
-Observação: o schema atual está inicial (sem tabelas de domínio definidas).
+Observação: o schema atual inclui tabelas `hinos` e `cifras`.
 
 ## Comandos úteis
 
