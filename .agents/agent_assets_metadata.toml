@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "QCT3H1oz1bUvdOxTb5CcF"
+uri = "file://artifacts/hinario/assets/images/icon.png"
+type = "image"
+title = "generated_image"

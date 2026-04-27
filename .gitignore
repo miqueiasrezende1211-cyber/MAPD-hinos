@@ -1,0 +1,68 @@
+# compiled output
+dist/
+tmp/
+out-tsc/
+*.tsbuildinfo
+.expo/
+.expo-shared/
+.next/
+.turbo/
+build/
+coverage/
+
+# dependencies
+node_modules/
+**/node_modules/
+
+# package managers/cache
+.cache/
+.local/
+.config/
+.upm/
+.pnpm-store/
+
+# IDEs and editors
+/.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+/.sass-cache/
+connect.lock
+libpeerconnection.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+testem.log
+/typings/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# archives/exports
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# env/secrets
+.env
+.env.*
+!.env.example
+
+# project-specific generated files
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
