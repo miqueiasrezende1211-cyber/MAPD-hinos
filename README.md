@@ -1,4 +1,4 @@
-# MAPD Hinos
+﻿# MAPD Hinos
 
 Monorepo `pnpm` com app mobile/web de hinário, API Node.js e biblioteca de banco com Drizzle.
 
@@ -14,7 +14,7 @@ O produto principal é o **Hinário**:
 Além disso, o repositório inclui:
 
 - **API Server** (`artifacts/api-server`): Express 5 com endpoint de saúde
-- **DB lib** (`lib/db`): conexão PostgreSQL + Drizzle (estrutura pronta para evoluir schema)
+- **DB lib** (`lib/db`): conexão PostgreSQL + Drizzle
 - **Mockup Sandbox** (`artifacts/mockup-sandbox`): preview de componentes React/Vite
 
 ## Stack
@@ -68,7 +68,7 @@ EXPO_PUBLIC_REPL_ID=local
 
 ## Instalação
 
-Instale **somente na raiz do monorepo**:
+Instale somente na raiz do monorepo:
 
 ```powershell
 cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
@@ -135,7 +135,7 @@ $env:BASE_PATH="/__mockup"
 pnpm --filter @workspace/mockup-sandbox run dev
 ```
 
-## Banco de dados (opcional neste estágio)
+## Banco de dados
 
 A lib `@workspace/db` exige `DATABASE_URL`.
 
@@ -146,9 +146,6 @@ cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
 pnpm run db:push
 ```
 
-Observação: o schema atual inclui tabelas `hinos` e `cifras`.
-
-
 Para carregar os hinos do `hinos.json` no banco (seed inicial):
 
 ```powershell
@@ -158,8 +155,10 @@ pnpm run db:seed
 
 Esse comando:
 
-- gera o arquivo SQL de carga em `lib/db/seeds/hinos.seed.sql`
-- executa a carga no PostgreSQL com `upsert` (atualiza se o `numero` j� existir)
+- Gera o arquivo SQL de carga em `lib/db/seeds/hinos.seed.sql`
+- Executa a carga no PostgreSQL com `upsert` (atualiza se o `numero` já existir)
+
+Observação: o schema atual inclui as tabelas `hinos` e `cifras`.
 
 ## Comandos úteis
 
