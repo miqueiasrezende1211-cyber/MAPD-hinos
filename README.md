@@ -111,6 +111,21 @@ Atalho pela raiz do monorepo:
 pnpm run expo
 ```
 
+### Gerar APK (EAS Build)
+
+Primeiro, autentique no Expo:
+
+```powershell
+pnpm dlx eas-cli login
+```
+
+Depois gere APK Android:
+
+```powershell
+cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
+pnpm run apk
+```
+
 ### Mockup Sandbox (Vite)
 
 ```powershell
@@ -132,6 +147,19 @@ pnpm run db:push
 ```
 
 Observação: o schema atual inclui tabelas `hinos` e `cifras`.
+
+
+Para carregar os hinos do `hinos.json` no banco (seed inicial):
+
+```powershell
+cd C:\Users\MATEUS\Documents\Projeto\MAPD-hinos
+pnpm run db:seed
+```
+
+Esse comando:
+
+- gera o arquivo SQL de carga em `lib/db/seeds/hinos.seed.sql`
+- executa a carga no PostgreSQL com `upsert` (atualiza se o `numero` j� existir)
 
 ## Comandos úteis
 
