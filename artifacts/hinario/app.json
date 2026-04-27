@@ -4,12 +4,12 @@
     "slug": "hinario",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo-icon.png",
+    "icon": "../../logo.png",
     "scheme": "hinario",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/logo.png",
+      "image": "../../logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#1d3557"
     },
@@ -18,13 +18,13 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo-icon.png",
+        "foregroundImage": "../../logo.png",
         "backgroundColor": "#1d3557"
       },
       "package": "com.miqueiasrezende1211cyber.hinario"
     },
     "web": {
-      "favicon": "./assets/images/logo-icon.png"
+      "favicon": "../../logo.png"
     },
     "plugins": [
       [
