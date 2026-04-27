@@ -4,12 +4,12 @@
     "slug": "hinario",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo-icon.png",
     "scheme": "hinario",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#1d3557"
     },
@@ -17,10 +17,14 @@
       "supportsTablet": false
     },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/logo-icon.png",
+        "backgroundColor": "#1d3557"
+      },
       "package": "com.miqueiasrezende1211cyber.hinario"
     },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/logo-icon.png"
     },
     "plugins": [
       [
