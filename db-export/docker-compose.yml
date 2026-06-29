@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mapd-hinos-postgres
+    restart: unless-stopped
+    entrypoint: ["sh", "/usr/local/bin/docker-entrypoint-mapd.sh"]
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/var/lib/postgresql/tls/server.crt
+      - -c
+      - ssl_key_file=/var/lib/postgresql/tls/server.key
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    environment:
+      POSTGRES_DB: mapd_hinos
+      POSTGRES_USER: mapd_hinos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "0.0.0.0:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_tls:/var/lib/postgresql/tls
+      - ./docker-entrypoint-mapd.sh:/usr/local/bin/docker-entrypoint-mapd.sh:ro
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./tls:/run/mapd-tls:ro
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mapd_hinos -d mapd_hinos"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  postgres_data:
+  postgres_tls:
