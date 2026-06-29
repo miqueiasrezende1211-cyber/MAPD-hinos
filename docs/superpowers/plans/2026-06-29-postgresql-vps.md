@@ -143,14 +143,15 @@ git commit -m "feat: add secure PostgreSQL deployment"
 Set the example to:
 
 ```dotenv
-DATABASE_URL=postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require
+DATABASE_URL=postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require&uselibpqcompat=true
 ```
 
 - [ ] **Step 2: Update deployment documentation**
 
 Document the TLS generation command, deployment directory, startup command,
 external validation, connection URL format, and the explicit limitation that
-`sslmode=require` encrypts traffic without certificate identity validation.
+`sslmode=require&uselibpqcompat=true` encrypts traffic without certificate
+identity validation in the Node `pg` driver.
 
 - [ ] **Step 3: Check documentation for leaked secrets**
 
@@ -254,7 +255,8 @@ Expected: failure matching the `hostnossl ... reject` HBA rule.
 - [ ] **Step 4: Verify public encrypted access**
 
 Connect from the workspace to
-`vpsxerife.vps-kinghost.net:5432` with `sslmode=require` and run
+`vpsxerife.vps-kinghost.net:5432` with
+`sslmode=require&uselibpqcompat=true` and run
 `SELECT version()`.
 
 Expected: PostgreSQL 16 and an encrypted session.
@@ -315,4 +317,3 @@ Expected: the same 687/9/1 counts, proving volume persistence.
 Report the hostname, port, database name, username, TLS requirement, connection
 URL, validation results, and the security follow-up to restrict source IPs when
 the third-party provider makes them available.
-

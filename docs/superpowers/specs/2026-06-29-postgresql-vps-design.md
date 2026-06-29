@@ -17,7 +17,8 @@ A porta TCP 5432 da VPS será publicada para qualquer endereço de origem,
 conforme solicitado para permitir o acesso de um serviço terceiro sem IP fixo.
 O PostgreSQL exigirá TLS para conexões remotas e usará autenticação SCRAM-SHA-256
 com uma senha aleatória forte. A URL entregue usará o hostname público
-`vpsxerife.vps-kinghost.net`, com `sslmode=require`.
+`vpsxerife.vps-kinghost.net`, com
+`sslmode=require&uselibpqcompat=true` para o driver Node `pg`.
 
 ## Componentes
 
@@ -56,10 +57,10 @@ reduzir o risco:
 - o contêiner não terá privilégios adicionais nem acesso às stacks existentes;
 - a URL pública será entregue diretamente ao usuário ao final.
 
-`sslmode=require` cifra o transporte, mas não valida a identidade do servidor
-como faria `verify-full` com uma autoridade certificadora confiável. Essa é uma
-limitação aceita nesta primeira implantação. Quando o serviço terceiro tiver IP
-fixo, o acesso deverá ser restringido no firewall.
+`sslmode=require&uselibpqcompat=true` cifra o transporte, mas não valida a
+identidade do servidor como faria `verify-full` com uma autoridade certificadora
+confiável. Essa é uma limitação aceita nesta primeira implantação. Quando o
+serviço terceiro tiver IP fixo, o acesso deverá ser restringido no firewall.
 
 ## Tratamento de falhas e reversão
 
@@ -81,4 +82,3 @@ A implantação será considerada concluída somente quando:
 - uma tentativa de conexão sem TLS for recusada;
 - o projeto passar pela verificação de tipos usando a nova configuração;
 - a `DATABASE_URL` entregue conectar com sucesso a partir de fora da VPS.
-

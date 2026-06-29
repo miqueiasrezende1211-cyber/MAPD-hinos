@@ -49,10 +49,11 @@ quando o volume `postgres_data` ainda está vazio.
 ## Conexão
 
 ```text
-postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require
+postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require&uselibpqcompat=true
 ```
 
-`sslmode=require` cifra o tráfego, mas não valida a identidade do servidor como
+`sslmode=require&uselibpqcompat=true` faz o driver Node `pg` seguir a semântica
+do libpq: cifra o tráfego, mas não valida a identidade do servidor como
 `verify-full` com uma autoridade certificadora confiável. Quando o serviço
 terceiro fornecer IPs de saída fixos, restrinja a porta 5432 a esses endereços
 no firewall.
@@ -60,7 +61,7 @@ no firewall.
 ## Validar externamente
 
 ```sh
-psql "postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require" \
+psql "postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require&uselibpqcompat=true" \
   -c "select version();"
 ```
 
