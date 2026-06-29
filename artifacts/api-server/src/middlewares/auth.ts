@@ -1,9 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import { verifyAuthToken, type AuthTokenPayload } from "../lib/token";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    authUser?: AuthTokenPayload;
+declare global {
+  namespace Express {
+    interface Request {
+      authUser?: AuthTokenPayload;
+    }
   }
 }
 
@@ -27,7 +29,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   req.authUser = payload;
-  next();
+  return next();
 }
 
 export function requireRole(roles: Array<AuthTokenPayload["role"]>) {
@@ -36,6 +38,6 @@ export function requireRole(roles: Array<AuthTokenPayload["role"]>) {
     if (!role || !roles.includes(role)) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
-    next();
+    return next();
   };
 }

@@ -146,11 +146,12 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
     console.log(`Setting EXPO_PUBLIC_REPL_ID=${expoPublicReplId}`);
   }
 
+  const expoCli = require.resolve("@expo/cli");
+
   metroProcess = spawn(
-    "pnpm",
+    process.execPath,
     [
-      "exec",
-      "expo",
+      expoCli,
       "start",
       "--no-dev",
       "--minify",
@@ -201,7 +202,10 @@ async function downloadFile(url, outputPath) {
     const response = await fetch(url, { signal: controller.signal });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const details = (await response.text()).trim();
+      throw new Error(
+        `HTTP ${response.status}${details ? `: ${details}` : ""}`,
+      );
     }
 
     const file = fs.createWriteStream(outputPath);
