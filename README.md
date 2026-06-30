@@ -100,6 +100,38 @@ Health check:
 
 - `GET http://localhost:8080/api/healthz`
 
+## Deploy no Render (API)
+
+Para o serviço web da API no Render, não use `corepack enable` no comando de
+build. Em alguns ambientes do Render o Corepack tenta criar o atalho
+`/usr/bin/pnpx`, mas esse caminho é somente leitura e o deploy falha com
+`EROFS: read-only file system`.
+
+Configure o serviço web assim:
+
+```sh
+Build Command:
+npm install -g pnpm@10.34.4 && pnpm install --frozen-lockfile && pnpm run build:render
+
+Start Command:
+node --enable-source-maps artifacts/api-server/dist/index.mjs
+```
+
+Variáveis obrigatórias no Render:
+
+```dotenv
+NODE_VERSION=24
+DATABASE_URL=postgresql://mapd_hinos:SUA_SENHA@vpsxerife.vps-kinghost.net:5432/mapd_hinos?sslmode=require&uselibpqcompat=true
+AUTH_SECRET=uma-chave-forte-e-secreta
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=seu-email-admin
+ADMIN_PASSWORD=sua-senha-admin
+```
+
+O `PORT` é fornecido pelo próprio Render. Depois do deploy, valide:
+
+- `GET https://SEU-SERVICO.onrender.com/api/healthz`
+
 ### Expo (Hinário)
 
 ```powershell
