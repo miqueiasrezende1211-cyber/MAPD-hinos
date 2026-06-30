@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, usuariosTable } from "@workspace/db";
+import { db, pool, usuariosTable } from "@workspace/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { createAuthToken } from "../lib/token";
@@ -20,6 +20,14 @@ const createUserBodySchema = z.object({
   papel: z.enum(["admin", "editor"]).default("editor"),
 });
 
+type LoginUsuarioRow = {
+  id: string;
+  nome: string;
+  email: string;
+  senhaHash: string;
+  papel: "admin" | "editor";
+};
+
 router.post("/auth/login", async (req, res) => {
   const parsed = loginBodySchema.safeParse(req.body);
   if (!parsed.success) {
@@ -27,16 +35,22 @@ router.post("/auth/login", async (req, res) => {
   }
 
   const { email, senha } = parsed.data;
-  const [usuario] = await db
-    .select()
-    .from(usuariosTable)
-    .where(
-      and(
-        sql`LOWER(${usuariosTable.email}) = ${email}`,
-        eq(usuariosTable.ativo, true),
-      ),
-    )
-    .limit(1);
+  const { rows } = await pool.query<LoginUsuarioRow>(
+    `
+    SELECT
+      id,
+      nome,
+      email,
+      senha_hash AS "senhaHash",
+      papel
+    FROM usuarios
+    WHERE LOWER(email) = $1
+      AND ativo = TRUE
+    LIMIT 1
+    `,
+    [email],
+  );
+  const [usuario] = rows;
 
   if (!usuario || !verifyPassword(senha, usuario.senhaHash)) {
     return res.status(401).json({ error: "Invalid email or password" });
