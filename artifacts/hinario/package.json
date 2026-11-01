@@ -9,7 +9,8 @@
     "apk": "pnpm dlx eas-cli build --platform android --profile apk",
     "build": "node --env-file-if-exists=../../.env scripts/build.js",
     "serve": "node server/serve.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/contentCache.test.mjs tests/cifras.test.cjs tests/hinoSearch.test.mjs tests/parseLetra.test.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

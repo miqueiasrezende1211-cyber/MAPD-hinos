@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import Feather from "@expo/vector-icons/Feather";
 import { Stack, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HinoForm, type HinoFormState } from "@/components/HinoForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHinos } from "@/contexts/HinosContext";
 import { createHino, getNextHinoNumber } from "@/lib/api";
+import { theme } from "@/constants/theme";
+import { invalidateCifra } from "@/hooks/useCifra";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useColors } from "@/hooks/useColors";
 
 export default function AdminCadastroScreen() {
@@ -14,7 +17,7 @@ export default function AdminCadastroScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { token, isAuthenticated } = useAuth();
-  const { refresh } = useHinos();
+  const { refresh, upsert } = useHinos();
 
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<HinoFormState>({
@@ -27,15 +30,25 @@ export default function AdminCadastroScreen() {
 
   useEffect(() => {
     if (!isAuthenticated || !token) return;
+    let active = true;
     void getNextHinoNumber(token)
-      .then((res) => setForm((prev) => ({ ...prev, numero: res.numero })))
-      .catch(() =>
-        Alert.alert("Erro", "Não foi possível obter número automático."),
-      );
+      .then((res) => {
+        if (active) setForm((prev) => ({ ...prev, numero: res.numero }));
+      })
+      .catch(() => {
+        if (active)
+          Alert.alert(
+            "Erro",
+            "Não foi possível obter número automático. O número será atribuído ao salvar.",
+          );
+      });
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated, token]);
 
   async function handleSave() {
-    if (!token) return;
+    if (!token || busy) return;
     if (!form.titulo.trim() || !form.letra.trim()) {
       Alert.alert("Validação", "Título e letra são obrigatórios.");
       return;
@@ -43,7 +56,7 @@ export default function AdminCadastroScreen() {
 
     setBusy(true);
     try {
-      await createHino(
+      const created = await createHino(
         {
           titulo: form.titulo.trim(),
           tom: form.tom.trim() || null,
@@ -52,7 +65,12 @@ export default function AdminCadastroScreen() {
         },
         token,
       );
-      await refresh();
+      await upsert(created.item);
+      await invalidateCifra(
+        created.item.numero,
+        form.cifra.trim() ? form.cifra : null,
+      );
+      await refresh(true);
       Alert.alert("Sucesso", "Hino cadastrado com sucesso.");
       router.replace("/admin");
     } catch (error) {
@@ -67,10 +85,12 @@ export default function AdminCadastroScreen() {
       <View
         style={[
           styles.root,
-          { backgroundColor: colors.background, paddingTop: insets.top + 20 },
+          { backgroundColor: colors.background, paddingTop: 20, flex: 1 },
         ]}
       >
-        <Text style={[styles.title, { color: colors.foreground }]}>Cadastro</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>
+          Cadastro
+        </Text>
         <Text style={[styles.sub, { color: colors.mutedForeground }]}>
           Faça login para cadastrar hinos.
         </Text>
@@ -79,10 +99,15 @@ export default function AdminCadastroScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollViewCompat
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[
         styles.root,
-        { backgroundColor: colors.background, paddingTop: insets.top + 16 },
+        {
+          backgroundColor: colors.background,
+          paddingTop: 16,
+          paddingBottom: insets.bottom + 24,
+        },
       ]}
       keyboardShouldPersistTaps="handled"
     >
@@ -100,7 +125,9 @@ export default function AdminCadastroScreen() {
           ),
         }}
       />
-      <Text style={[styles.title, { color: colors.foreground }]}>Novo Hino</Text>
+      <Text style={[styles.title, { color: colors.foreground }]}>
+        Novo Hino
+      </Text>
       <Text style={[styles.sub, { color: colors.mutedForeground }]}>
         Número automático. Salve letra e cifra em uma única ação.
       </Text>
@@ -111,27 +138,32 @@ export default function AdminCadastroScreen() {
         submitLabel="Cadastrar"
         busy={busy}
       />
-    </ScrollView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
+    width: "100%",
+    maxWidth: theme.contentWidth,
+    alignSelf: "center",
     paddingHorizontal: 16,
     paddingBottom: 28,
     gap: 12,
   },
   title: {
-    fontFamily: "Merriweather_700Bold",
+    fontFamily: theme.fonts.heading,
     fontSize: 28,
   },
   sub: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: theme.fonts.ui,
     fontSize: 13,
     marginBottom: 2,
   },
   headerIconHit: {
-    paddingHorizontal: 2,
-    paddingVertical: 2,
+    width: theme.touchTarget,
+    height: theme.touchTarget,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

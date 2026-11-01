@@ -1,295 +1,256 @@
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import { Stack, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
+  FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { listHinos } from "@/lib/api";
+import { useHinos } from "@/contexts/HinosContext";
 import { useColors } from "@/hooks/useColors";
-
-type ListItem = {
-  numero: number;
-  titulo: string;
-  tom: string | null;
-};
+import {
+  buildHinoIndex,
+  searchHinos,
+  type SearchResult,
+} from "@/utils/hinoSearch";
 
 export default function AdminManagementScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuth();
-
+  const { hinos, refreshing, error, refresh } = useHinos();
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<ListItem[]>([]);
-
-  async function refresh(search = query) {
-    setLoading(true);
-    try {
-      const response = await listHinos(search);
-      setItems(
-        response.items.map((item) => ({
-          numero: item.numero,
-          titulo: item.titulo,
-          tom: item.tom,
-        })),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      void refresh();
-    }
-  }, [isAuthenticated]);
-
-  if (!isAuthenticated) {
-    return (
-      <View
-        style={[
-          styles.root,
-          { backgroundColor: colors.background, paddingTop: insets.top + 20 },
+  const index = useMemo(() => buildHinoIndex(hinos), [hinos]);
+  const items = useMemo(() => searchHinos(index, query), [index, query]);
+  const renderItem = useCallback(
+    ({ item }: { item: SearchResult }) => (
+      <Pressable
+        onPress={() => router.push(`/admin-editar/${item.entry.hino.numero}`)}
+        accessibilityRole="button"
+        accessibilityLabel={`Editar hino ${item.entry.hino.numero}, ${item.entry.hino.titulo}`}
+        style={({ pressed }) => [
+          styles.item,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+            opacity: pressed ? 0.7 : 1,
+          },
         ]}
       >
-        <Text style={[styles.title, { color: colors.foreground }]}>Gerenciamento</Text>
+        <Text style={[styles.number, { color: colors.accent }]}>
+          {item.entry.hino.numero}
+        </Text>
+        <Text style={[styles.itemTitle, { color: colors.foreground }]}>
+          {item.entry.hino.titulo}
+        </Text>
+        <Feather name="edit-2" size={18} color={colors.accent} />
+      </Pressable>
+    ),
+    [router, colors.border, colors.card, colors.accent, colors.foreground],
+  );
+
+  if (!isAuthenticated)
+    return (
+      <View style={[styles.gate, { backgroundColor: colors.background }]}>
+        <Text style={[styles.title, { color: colors.foreground }]}>
+          Administração
+        </Text>
         <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-          Faça login para acessar a gestão de hinos.
+          Faça login para gerenciar letras e cifras.
         </Text>
         <Pressable
           onPress={() => router.replace("/login")}
-          style={[
-            styles.primaryButton,
-            { backgroundColor: colors.primary, borderRadius: colors.radius },
-          ]}
+          accessibilityRole="button"
+          style={[styles.button, { backgroundColor: colors.primary }]}
         >
-          <Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>
-            Ir para Login
+          <Text
+            style={[styles.buttonText, { color: colors.primaryForeground }]}
+          >
+            Fazer login
           </Text>
         </Pressable>
       </View>
     );
-  }
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.root,
-        { backgroundColor: colors.background, paddingTop: insets.top + 16 },
-      ]}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: "Gerenciamento",
+          title: "Administração",
           headerRight: () => (
-            <View style={styles.headerIcons}>
-              <Pressable
-                onPress={() => router.replace("/")}
-                style={styles.headerIconHit}
-                accessibilityLabel="Ir para início"
-              >
-                <Feather name="home" size={20} color={colors.foreground} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push("/admin-cadastro")}
-                style={styles.headerIconHit}
-                accessibilityLabel="Novo cadastro"
-              >
-                <Feather name="plus" size={22} color={colors.foreground} />
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => router.replace("/")}
+              style={styles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir hinário"
+            >
+              <Feather name="book-open" size={22} color={colors.foreground} />
+            </Pressable>
           ),
         }}
       />
-
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Gerenciamento</Text>
-          <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-            {user?.nome} ({user?.papel})
-          </Text>
-        </View>
-        <Pressable
-          onPress={async () => {
-            await logout();
-            router.replace("/login");
-          }}
-          style={[
-            styles.secondaryButton,
-            { backgroundColor: colors.secondary, borderRadius: colors.radius },
-          ]}
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
-            Sair
-          </Text>
-        </Pressable>
-      </View>
-
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+      <FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={(item) => String(item.entry.hino.numero)}
+        initialNumToRender={12}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        refreshing={refreshing}
+        onRefresh={() => void refresh()}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 24 },
         ]}
-      >
-        <View style={styles.searchRow}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Buscar hinos"
-            placeholderTextColor={colors.mutedForeground}
-            style={[
-              styles.input,
-              {
-                color: colors.foreground,
-                borderColor: colors.border,
-                backgroundColor: colors.background,
-                borderRadius: colors.radius,
-                flex: 1,
-              },
-            ]}
-          />
-          <Pressable
-            onPress={() => void refresh()}
-            style={[
-              styles.secondaryButton,
-              { backgroundColor: colors.primary, borderRadius: colors.radius },
-            ]}
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.primaryForeground }]}>
-              Buscar
-            </Text>
-          </Pressable>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator />
-        ) : (
-          <View style={{ gap: 8 }}>
-            {items.map((item) => (
-              <View
-                key={item.numero}
-                style={[
-                  styles.rowItem,
-                  { borderColor: colors.border, borderRadius: colors.radius },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.itemNumber, { color: colors.foreground }]}>
-                    {item.numero}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.itemTitle, { color: colors.mutedForeground }]}
-                  >
-                    {item.titulo}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => router.push(`/admin-editar/${item.numero}`)}
-                  accessibilityLabel={`Editar hino ${item.numero}`}
-                  style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1, padding: 8 }]}
-                >
-                  <Feather name="edit-2" size={18} color={colors.foreground} />
-                </Pressable>
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.headerRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.title, { color: colors.foreground }]}>
+                  Gerenciar hinos
+                </Text>
+                <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                  {user?.nome} · {user?.papel}
+                </Text>
               </View>
-            ))}
+              <Pressable
+                onPress={async () => {
+                  await logout();
+                  router.replace("/login");
+                }}
+                style={[styles.logout, { borderColor: colors.border }]}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.buttonText, { color: colors.foreground }]}>
+                  Sair
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => router.push("/admin-cadastro")}
+              style={[styles.button, { backgroundColor: colors.primary }]}
+              accessibilityRole="button"
+            >
+              <Feather name="plus" size={20} color={colors.primaryForeground} />
+              <Text
+                style={[styles.buttonText, { color: colors.primaryForeground }]}
+              >
+                Cadastrar hino
+              </Text>
+            </Pressable>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              accessibilityLabel="Buscar hinos para editar"
+              placeholder="Buscar por número, título ou letra"
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.input,
+                {
+                  color: colors.foreground,
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            />
+            {error && (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.sub, { color: colors.destructive }]}
+              >
+                Não foi possível atualizar. Exibindo o catálogo salvo. Puxe para
+                tentar novamente.
+              </Text>
+            )}
+            <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+              {items.length} hinos
+            </Text>
           </View>
-        )}
-      </View>
-    </ScrollView>
+        }
+        ListEmptyComponent={
+          <Text style={[styles.empty, { color: colors.mutedForeground }]}>
+            Nenhum hino encontrado para esta busca.
+          </Text>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
+  root: { flex: 1 },
+  content: {
+    width: "100%",
+    maxWidth: theme.contentWidth,
+    alignSelf: "center",
     paddingHorizontal: 16,
-    paddingBottom: 28,
-    gap: 14,
+    paddingTop: 16,
+    gap: 10,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  headerIcons: {
+  header: { gap: 16, marginBottom: 6 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  gate: { flex: 1, padding: 24, gap: 18 },
+  title: { fontFamily: theme.fonts.heading, fontSize: 26, lineHeight: 36 },
+  sub: { fontFamily: theme.fonts.ui, fontSize: 14, lineHeight: 22 },
+  button: {
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginRight: 2,
-  },
-  headerIconHit: {
-    paddingHorizontal: 2,
-    paddingVertical: 2,
-  },
-  title: {
-    fontFamily: "Merriweather_700Bold",
-    fontSize: 28,
-  },
-  sub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-  },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: "center",
     padding: 14,
-    gap: 12,
-  },
-  searchRow: {
-    flexDirection: "row",
+    borderRadius: 24,
     gap: 8,
+  },
+  buttonText: { fontFamily: theme.fonts.uiSemibold, fontSize: 14 },
+  logout: {
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderRadius: 24,
+  },
+  iconButton: {
+    width: 48,
+    height: 48,
     alignItems: "center",
+    justifyContent: "center",
   },
   input: {
-    height: 44,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    fontFamily: theme.fonts.ui,
+    fontSize: 15,
   },
-  rowItem: {
-    minHeight: 56,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  item: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    minHeight: 76,
+    gap: 14,
+    padding: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14,
   },
-  itemNumber: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 14,
-  },
+  number: { minWidth: 36, fontFamily: theme.fonts.uiBold, fontSize: 15 },
   itemTitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    flex: 1,
+    fontFamily: theme.fonts.uiMedium,
+    fontSize: 15,
+    lineHeight: 22,
   },
-  primaryButton: {
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-  },
-  secondaryButton: {
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-  secondaryButtonText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
+  empty: {
+    paddingVertical: 32,
+    fontFamily: theme.fonts.ui,
+    fontSize: 15,
+    textAlign: "center",
   },
 });

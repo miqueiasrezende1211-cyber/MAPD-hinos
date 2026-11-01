@@ -1,7 +1,7 @@
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -12,450 +12,392 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { cifras } from "@/data/cifras";
+import { CifraContent } from "@/components/CifraContent";
+import { theme } from "@/constants/theme";
 import { useHinos } from "@/contexts/HinosContext";
+import { useCifra } from "@/hooks/useCifra";
 import { useColors } from "@/hooks/useColors";
-import { getHino } from "@/lib/api";
+import { useReadingPreference } from "@/hooks/useReadingPreference";
 import {
   formatarSemitons,
   transporCifra,
   transporTom,
 } from "@/utils/transposeCifra";
 
-const FONT_STEPS = [12, 13, 14, 15, 16, 18, 20];
+const FONT_STEPS = [12, 13, 14, 15, 16, 18, 20] as const;
 
 export default function CifraScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { numero } = useLocalSearchParams<{ numero: string }>();
-  const { hinos } = useHinos();
   const num = Number(numero);
-  const hino = hinos.find((h) => h.numero === num);
-  const [cifraOriginal, setCifraOriginal] = useState<string | null>(
-    cifras[num] ?? null,
+  const validNumber = Number.isInteger(num) && num > 0;
+  const { hinos } = useHinos();
+  const hino = useMemo(
+    () => hinos.find((item) => item.numero === num),
+    [hinos, num],
   );
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    if (!Number.isInteger(num) || num <= 0) return;
-
-    setLoading(true);
-    void getHino(num)
-      .then((response) => {
-        if (!active) return;
-        setCifraOriginal(response.item.cifra ?? cifras[num] ?? null);
-      })
-      .catch(() => {
-        if (!active) return;
-        setCifraOriginal(cifras[num] ?? null);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [num]);
-
-  const [fontIdx, setFontIdx] = useState(2);
-  const [semitons, setSemitons] = useState(0);
-  const fontSize = FONT_STEPS[fontIdx] ?? 14;
-  const lineHeight = fontSize * 1.5;
-
+  const { cifra: original, loading, refreshing, error, retry } = useCifra(num);
+  const { fontIdx, fontSize, stepFont } = useReadingPreference(
+    "cifra",
+    FONT_STEPS,
+    2,
+  );
+  // A new route always starts in its original key, including its first render.
+  const [transpose, setTranspose] = useState({ numero: num, value: 0 });
+  const semitons = transpose.numero === num ? transpose.value : 0;
   const cifra = useMemo(
-    () => (cifraOriginal ? transporCifra(cifraOriginal, semitons) : ""),
-    [cifraOriginal, semitons],
+    () => (original ? transporCifra(original, semitons) : ""),
+    [original, semitons],
   );
-  const tomAtual = transporTom(hino?.tom ?? null, semitons);
+  const tomAtual = transporTom(hino?.tom, semitons);
 
   const stepSemitom = (delta: number) => {
-    setSemitons((s) => {
-      const next = Math.max(-11, Math.min(11, s + delta));
-      if (next !== s && Platform.OS !== "web") {
-        Haptics.selectionAsync();
-      }
-      return next;
+    setTranspose({
+      numero: num,
+      value: Math.max(-11, Math.min(11, semitons + delta)),
     });
+    if (Platform.OS !== "web") void Haptics.selectionAsync();
   };
 
-  const stepFont = (delta: number) => {
-    setFontIdx((idx) => {
-      const next = Math.max(0, Math.min(FONT_STEPS.length - 1, idx + delta));
-      if (next !== idx && Platform.OS !== "web") {
-        Haptics.selectionAsync();
-      }
-      return next;
-    });
-  };
-
-  const webBottomInset = Platform.OS === "web" ? 34 : 0;
-
-  if (loading) {
-    return (
-      <View
-        style={[
-          styles.empty,
-          { backgroundColor: colors.background, paddingTop: insets.top + 24 },
-        ]}
-      >
-        <ActivityIndicator color={colors.foreground} />
-      </View>
-    );
-  }
-
-  if (!hino || !cifraOriginal) {
-    return (
-      <View
-        style={[
-          styles.empty,
-          { backgroundColor: colors.background, paddingTop: insets.top + 24 },
-        ]}
-      >
-        <Stack.Screen options={{ title: "Cifra" }} />
-        <Feather name="file-text" size={40} color={colors.mutedForeground} />
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-          Cifra não disponível
-        </Text>
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-          Ainda não cadastramos a cifra deste hino.
-        </Text>
-      </View>
-    );
-  }
+  const buttonStyle = ({ pressed }: { pressed: boolean }) => [
+    styles.iconButton,
+    { opacity: pressed ? 0.65 : 1 },
+  ];
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: `Cifra ${hino.numero}` }} />
+      <Stack.Screen
+        options={{ title: validNumber ? `Cifra ${num}` : "Cifra" }}
+      />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>
+              Hino nº {validNumber ? num : "—"}
+            </Text>
+            <Text
+              accessibilityRole="header"
+              style={[styles.title, { color: colors.foreground }]}
+            >
+              {hino?.titulo ?? "Cifra"}
+            </Text>
+            {cifra ? (
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                Os acordes destacados acompanham a letra. Deslize os trechos
+                largos para os lados.
+              </Text>
+            ) : null}
+          </View>
 
-      <View
-        style={[styles.header, { borderBottomColor: colors.border }]}
-      >
-        <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>
-          Hino nº {hino.numero}
-        </Text>
-        <Text style={[styles.titulo, { color: colors.foreground }]}>
-          {hino.titulo}
-        </Text>
-        <View style={styles.headerMetaRow}>
-          {tomAtual ? (
+          {cifra ? (
             <View
               style={[
-                styles.tomChip,
-                { borderColor: colors.border, backgroundColor: colors.card },
+                styles.keyControls,
+                { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <Text
-                style={[
-                  styles.tomChipLabel,
-                  { color: colors.mutedForeground },
-                ]}
-              >
-                Tom
-              </Text>
-              <Text
-                style={[styles.tomChipValue, { color: colors.foreground }]}
-              >
-                {tomAtual}
-              </Text>
-              {semitons !== 0 && hino.tom ? (
+              <View style={styles.keyInfo}>
                 <Text
                   style={[
-                    styles.tomChipOriginal,
+                    styles.controlLabel,
                     { color: colors.mutedForeground },
                   ]}
                 >
-                  (orig. {hino.tom})
+                  Tom atual
                 </Text>
-              ) : null}
+                <Text style={[styles.keyValue, { color: colors.foreground }]}>
+                  {tomAtual ?? "Não informado"}
+                </Text>
+                {semitons !== 0 && hino?.tom ? (
+                  <Text
+                    style={[styles.hint, { color: colors.mutedForeground }]}
+                  >
+                    Original: {hino.tom}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={styles.transpose}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Diminuir um semitom"
+                  accessibilityState={{ disabled: semitons <= -11 }}
+                  disabled={semitons <= -11}
+                  onPress={() => stepSemitom(-1)}
+                  style={[
+                    styles.iconButton,
+                    { opacity: semitons <= -11 ? 0.35 : 1 },
+                  ]}
+                >
+                  <Feather name="minus" size={20} color={colors.foreground} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Voltar ao tom original"
+                  onPress={() => setTranspose({ numero: num, value: 0 })}
+                  style={styles.transposeValue}
+                >
+                  <Text
+                    style={[
+                      styles.controlLabel,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Semitons
+                  </Text>
+                  <Text style={[styles.value, { color: colors.accent }]}>
+                    {formatarSemitons(semitons)}
+                  </Text>
+                  <Text style={[styles.reset, { color: colors.accent }]}>
+                    Restaurar
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Aumentar um semitom"
+                  accessibilityState={{ disabled: semitons >= 11 }}
+                  disabled={semitons >= 11}
+                  onPress={() => stepSemitom(1)}
+                  style={[
+                    styles.iconButton,
+                    { opacity: semitons >= 11 ? 0.35 : 1 },
+                  ]}
+                >
+                  <Feather name="plus" size={20} color={colors.foreground} />
+                </Pressable>
+              </View>
             </View>
           ) : null}
 
-          <View
-            style={[
-              styles.transpRow,
-              { borderColor: colors.border, backgroundColor: colors.card },
-            ]}
-          >
-            <Pressable
-              onPress={() => stepSemitom(-1)}
-              disabled={semitons <= -11}
-              hitSlop={6}
-              style={({ pressed }) => [
-                styles.transpBtn,
-                { opacity: semitons <= -11 ? 0.35 : pressed ? 0.6 : 1 },
-              ]}
-              accessibilityLabel="Diminuir um semitom"
-            >
-              <Feather name="minus" size={16} color={colors.foreground} />
-            </Pressable>
-            <Pressable
-              onPress={() => setSemitons(0)}
-              disabled={semitons === 0}
-              style={({ pressed }) => [
-                styles.transpDisplay,
-                { opacity: semitons === 0 ? 1 : pressed ? 0.6 : 1 },
-              ]}
-              accessibilityLabel="Voltar ao tom original"
+          {cifra && refreshing ? (
+            <View style={styles.status}>
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                Atualizando cifra…
+              </Text>
+            </View>
+          ) : null}
+          {error && cifra ? (
+            <View
+              accessibilityLiveRegion="polite"
+              style={[styles.notice, { backgroundColor: colors.secondary }]}
             >
               <Text
-                style={[styles.transpLabel, { color: colors.mutedForeground }]}
+                style={[styles.hint, { color: colors.foreground, flex: 1 }]}
               >
-                Transpor
+                Exibindo a cifra salva. Não foi possível atualizar agora.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Tentar atualizar a cifra"
+                disabled={refreshing}
+                onPress={() => void retry()}
+                style={buttonStyle}
+              >
+                <Feather name="refresh-cw" size={20} color={colors.accent} />
+              </Pressable>
+            </View>
+          ) : null}
+
+          {validNumber && cifra ? (
+            <CifraContent cifra={cifra} fontSize={fontSize} />
+          ) : (
+            <View style={styles.empty} accessibilityLiveRegion="polite">
+              {validNumber && loading ? (
+                <ActivityIndicator size="large" color={colors.accent} />
+              ) : (
+                <Feather
+                  name={error ? "wifi-off" : "file-text"}
+                  size={36}
+                  color={colors.mutedForeground}
+                />
+              )}
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                {!validNumber
+                  ? "Hino não encontrado"
+                  : loading
+                    ? "Carregando cifra…"
+                    : error
+                      ? "Não foi possível carregar a cifra"
+                      : "Cifra não disponível"}
               </Text>
               <Text
-                style={[
-                  styles.transpValue,
-                  {
-                    color:
-                      semitons === 0 ? colors.foreground : colors.accent,
-                  },
-                ]}
+                style={[styles.emptyText, { color: colors.mutedForeground }]}
               >
-                {formatarSemitons(semitons)}
+                {validNumber && !loading
+                  ? error
+                    ? "Conecte-se à internet para abrir uma cifra que ainda não foi salva neste aparelho."
+                    : "Ainda não há uma cifra cadastrada para este hino."
+                  : ""}
               </Text>
-            </Pressable>
+              {validNumber && error ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void retry()}
+                  style={[styles.retry, { backgroundColor: colors.primary }]}
+                >
+                  <Text
+                    style={[
+                      styles.retryText,
+                      { color: colors.primaryForeground },
+                    ]}
+                  >
+                    Tentar novamente
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {cifra ? (
+        <View
+          style={[
+            styles.toolbar,
+            {
+              paddingBottom: Math.max(insets.bottom, 12),
+              borderTopColor: colors.border,
+              backgroundColor: colors.card,
+            },
+          ]}
+        >
+          <View style={styles.fontControls}>
             <Pressable
-              onPress={() => stepSemitom(1)}
-              disabled={semitons >= 11}
-              hitSlop={6}
-              style={({ pressed }) => [
-                styles.transpBtn,
-                { opacity: semitons >= 11 ? 0.35 : pressed ? 0.6 : 1 },
-              ]}
-              accessibilityLabel="Aumentar um semitom"
+              accessibilityRole="button"
+              accessibilityLabel="Diminuir fonte da cifra"
+              accessibilityState={{ disabled: fontIdx === 0 }}
+              disabled={fontIdx === 0}
+              onPress={() => stepFont(-1)}
+              style={[styles.iconButton, { opacity: fontIdx === 0 ? 0.35 : 1 }]}
             >
-              <Feather name="plus" size={16} color={colors.foreground} />
+              <Feather name="minus" size={20} color={colors.foreground} />
+            </Pressable>
+            <View style={styles.fontDisplay}>
+              <Text
+                style={[styles.controlLabel, { color: colors.mutedForeground }]}
+              >
+                Tamanho da cifra
+              </Text>
+              <Text style={[styles.value, { color: colors.foreground }]}>
+                {fontSize}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Aumentar fonte da cifra"
+              accessibilityState={{
+                disabled: fontIdx === FONT_STEPS.length - 1,
+              }}
+              disabled={fontIdx === FONT_STEPS.length - 1}
+              onPress={() => stepFont(1)}
+              style={[
+                styles.iconButton,
+                { opacity: fontIdx === FONT_STEPS.length - 1 ? 0.35 : 1 },
+              ]}
+            >
+              <Feather name="plus" size={20} color={colors.foreground} />
             </Pressable>
           </View>
         </View>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
-        <ScrollView
-          contentContainerStyle={{
-            paddingTop: 16,
-            paddingBottom: insets.bottom + webBottomInset + 100,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text
-            selectable
-            style={[
-              styles.cifra,
-              { color: colors.foreground, fontSize, lineHeight },
-            ]}
-          >
-            {cifra}
-          </Text>
-        </ScrollView>
-      </ScrollView>
-
-      <View
-        style={[
-          styles.fontBar,
-          {
-            bottom: insets.bottom + webBottomInset + 16,
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => stepFont(-1)}
-          disabled={fontIdx === 0}
-          style={({ pressed }) => [
-            styles.fontBtn,
-            { opacity: fontIdx === 0 ? 0.35 : pressed ? 0.6 : 1 },
-          ]}
-          accessibilityLabel="Diminuir fonte"
-        >
-          <Feather name="minus" size={18} color={colors.foreground} />
-        </Pressable>
-        <View
-          style={[styles.fontDivider, { backgroundColor: colors.border }]}
-        />
-        <View style={styles.fontDisplay}>
-          <Text
-            style={[styles.fontSizeLabel, { color: colors.mutedForeground }]}
-          >
-            Tamanho
-          </Text>
-          <Text style={[styles.fontSizeValue, { color: colors.foreground }]}>
-            {fontSize}
-          </Text>
-        </View>
-        <View
-          style={[styles.fontDivider, { backgroundColor: colors.border }]}
-        />
-        <Pressable
-          onPress={() => stepFont(1)}
-          disabled={fontIdx === FONT_STEPS.length - 1}
-          style={({ pressed }) => [
-            styles.fontBtn,
-            {
-              opacity:
-                fontIdx === FONT_STEPS.length - 1
-                  ? 0.35
-                  : pressed
-                    ? 0.6
-                    : 1,
-            },
-          ]}
-          accessibilityLabel="Aumentar fonte"
-        >
-          <Feather name="plus" size={18} color={colors.foreground} />
-        </Pressable>
-      </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 6,
+  scroll: { padding: 16, paddingBottom: 32, flexGrow: 1 },
+  content: {
+    width: "100%",
+    maxWidth: theme.readingWidth,
+    alignSelf: "center",
+    gap: 16,
   },
+  header: { gap: 8 },
   eyebrow: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    letterSpacing: 1.2,
+    fontFamily: theme.fonts.uiSemibold,
+    fontSize: 12,
+    lineHeight: 18,
+    letterSpacing: 1,
     textTransform: "uppercase",
   },
-  titulo: {
-    fontFamily: "Merriweather_700Bold",
-    fontSize: 22,
-    letterSpacing: -0.3,
-  },
-  headerMetaRow: {
+  title: { fontFamily: theme.fonts.heading, fontSize: 26, lineHeight: 36 },
+  hint: { fontFamily: theme.fonts.ui, fontSize: 13, lineHeight: 20 },
+  keyControls: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
     flexDirection: "row",
-    alignItems: "center",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 6,
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  tomChip: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
+  keyInfo: { gap: 3, flexShrink: 1 },
+  keyValue: { fontFamily: theme.fonts.heading, fontSize: 19, lineHeight: 28 },
+  controlLabel: {
+    fontFamily: theme.fonts.uiMedium,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  transpose: { flexDirection: "row", alignItems: "center" },
+  iconButton: {
+    minWidth: theme.touchTarget,
+    minHeight: theme.touchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  transposeValue: {
+    minWidth: 72,
+    minHeight: theme.touchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  value: { fontFamily: theme.fonts.uiSemibold, fontSize: 17, lineHeight: 24 },
+  reset: { fontFamily: theme.fonts.uiMedium, fontSize: 11, lineHeight: 18 },
+  status: { flexDirection: "row", alignItems: "center", gap: 8 },
+  notice: {
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  tomChipLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  tomChipValue: {
-    fontFamily: "Merriweather_700Bold",
-    fontSize: 14,
-  },
-  tomChipOriginal: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-  },
-  transpRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  transpBtn: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  transpDisplay: {
-    paddingHorizontal: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  transpLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 9,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  transpValue: {
-    fontFamily: "Merriweather_700Bold",
-    fontSize: 14,
-  },
-  cifra: {
-    fontFamily: Platform.select({
-      ios: "Menlo",
-      android: "monospace",
-      default: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-    }),
-  },
-  empty: {
-    flex: 1,
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 24,
+  },
+  empty: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 64,
+    gap: 12,
   },
   emptyTitle: {
-    fontFamily: "Merriweather_700Bold",
+    fontFamily: theme.fonts.heading,
     fontSize: 20,
-    marginTop: 8,
-  },
-  emptyText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    lineHeight: 30,
     textAlign: "center",
   },
-  fontBar: {
-    position: "absolute",
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "stretch",
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  fontBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fontDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginVertical: 6,
-  },
-  fontDisplay: {
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fontSizeLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  fontSizeValue: {
-    fontFamily: "Merriweather_700Bold",
+  emptyText: {
+    fontFamily: theme.fonts.ui,
     fontSize: 14,
+    lineHeight: 22,
+    textAlign: "center",
+    maxWidth: 400,
   },
+  retry: {
+    minHeight: theme.touchTarget,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  retryText: { fontFamily: theme.fonts.uiSemibold, fontSize: 14 },
+  toolbar: { borderTopWidth: 1, paddingTop: 8, paddingHorizontal: 16 },
+  fontControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fontDisplay: { minWidth: 150, alignItems: "center" },
 });

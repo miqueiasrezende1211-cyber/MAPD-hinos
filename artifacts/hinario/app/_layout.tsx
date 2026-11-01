@@ -1,15 +1,7 @@
-﻿import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from "@expo-google-fonts/inter";
-import {
-  Merriweather_400Regular,
-  Merriweather_700Bold,
-  useFonts,
-} from "@expo-google-fonts/merriweather";
+﻿import { useFonts } from "expo-font";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
+import { theme } from "@/constants/theme";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -31,44 +23,50 @@ function RootLayoutNav() {
   const colors = useColors();
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.foreground,
-        headerTitleStyle: {
-          fontFamily: "Merriweather_700Bold",
-          fontSize: 18,
-        },
-        headerShadowVisible: false,
-        headerBackTitle: "Voltar",
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ title: "Login" }} />
-      <Stack.Screen name="admin" options={{ title: "Administração" }} />
-      <Stack.Screen name="admin-cadastro" options={{ title: "Cadastro" }} />
-      <Stack.Screen name="admin-editar/[numero]" options={{ title: "Edição" }} />
-      <Stack.Screen
-        name="hino/[numero]/index"
-        options={{ title: "", headerTransparent: false }}
-      />
-      <Stack.Screen
-        name="hino/[numero]/cifra"
-        options={{ title: "Cifra", headerTransparent: false }}
-      />
-    </Stack>
+    <>
+      <StatusBar style="auto" />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.foreground,
+          headerTitleStyle: {
+            fontFamily: theme.fonts.heading,
+            fontSize: 18,
+          },
+          headerShadowVisible: false,
+          headerBackTitle: "Voltar",
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ title: "Login" }} />
+        <Stack.Screen name="admin" options={{ title: "Administração" }} />
+        <Stack.Screen name="admin-cadastro" options={{ title: "Cadastro" }} />
+        <Stack.Screen
+          name="admin-editar/[numero]"
+          options={{ title: "Edição" }}
+        />
+        <Stack.Screen
+          name="hino/[numero]/index"
+          options={{ title: "", headerTransparent: false }}
+        />
+        <Stack.Screen
+          name="hino/[numero]/cifra"
+          options={{ title: "Cifra", headerTransparent: false }}
+        />
+      </Stack>
+    </>
   );
 }
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Merriweather_400Regular,
-    Merriweather_700Bold,
+    Inter_400Regular: require("@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"),
+    Inter_500Medium: require("@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf"),
+    Inter_600SemiBold: require("@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf"),
+    Inter_700Bold: require("@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf"),
+    Merriweather_400Regular: require("@expo-google-fonts/merriweather/400Regular/Merriweather_400Regular.ttf"),
+    Merriweather_700Bold: require("@expo-google-fonts/merriweather/700Bold/Merriweather_700Bold.ttf"),
   });
 
   useEffect(() => {

@@ -1,4 +1,6 @@
-const NOTAS_SUSTENIDO = [
+import { expandTabs, isChordLine, parseChord } from "./parseCifra";
+
+const SHARPS = [
   "C",
   "C#",
   "D",
@@ -12,128 +14,65 @@ const NOTAS_SUSTENIDO = [
   "A#",
   "B",
 ];
-
-const NOTAS_BEMOL = [
-  "C",
-  "Db",
-  "D",
-  "Eb",
-  "E",
-  "F",
-  "Gb",
-  "G",
-  "Ab",
-  "A",
-  "Bb",
-  "B",
-];
-
-const MAPA_NOTAS: Record<string, number> = {
+const FLATS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+const NOTES: Record<string, number> = {
   C: 0,
-  "C#": 1,
-  Db: 1,
   D: 2,
-  "D#": 3,
-  Eb: 3,
   E: 4,
   F: 5,
-  "F#": 6,
-  Gb: 6,
   G: 7,
-  "G#": 8,
-  Ab: 8,
   A: 9,
-  "A#": 10,
-  Bb: 10,
   B: 11,
 };
 
-function normalizarAcidente(s: string): string {
-  return s.replace(/♭/g, "b").replace(/♯/g, "#");
-}
-
-function transporNota(
-  raiz: string,
-  acidente: string,
-  semitons: number,
-  preferirBemol: boolean,
+function transposeNote(
+  root: string,
+  accidental: string,
+  semitones: number,
 ): string {
-  const nota = raiz + (acidente || "");
-  const idx = MAPA_NOTAS[nota];
-  if (idx === undefined) return nota;
-  const novoIdx = ((idx + semitons) % 12 + 12) % 12;
-  return preferirBemol ? NOTAS_BEMOL[novoIdx] : NOTAS_SUSTENIDO[novoIdx];
+  const value =
+    NOTES[root] + (accidental === "#" ? 1 : accidental === "b" ? -1 : 0);
+  return (semitones < 0 ? FLATS : SHARPS)[
+    (((value + semitones) % 12) + 12) % 12
+  ];
 }
 
-const REGEX_ACORDE =
-  /^([A-G])([#b♭♯]?)([^/\s]*?)(?:\/([A-G])([#b♭♯]?)([^/\s]*)?)?$/;
-
-function ehAcorde(token: string): boolean {
-  return REGEX_ACORDE.test(token);
+export function transporAcorde(token: string, semitons: number): string {
+  const chord = parseChord(token);
+  if (!chord || !semitons || !Number.isInteger(semitons)) return token;
+  return (
+    transposeNote(chord.root, chord.accidental, semitons) +
+    chord.suffix +
+    (chord.bass
+      ? `/${transposeNote(chord.bass, chord.bassAccidental ?? "", semitons)}`
+      : "")
+  );
 }
 
-function transporAcorde(
-  token: string,
-  semitons: number,
-  preferirBemol: boolean,
-): string {
-  const t = normalizarAcidente(token);
-  const m = REGEX_ACORDE.exec(t);
-  if (!m) return token;
-  const [, raiz, acidente, sufixo, bRaiz, bAcid, bSufixo] = m;
-  let resultado =
-    transporNota(raiz, acidente, semitons, preferirBemol) + (sufixo || "");
-  if (bRaiz) {
-    resultado +=
-      "/" +
-      transporNota(bRaiz, bAcid, semitons, preferirBemol) +
-      (bSufixo || "");
-  }
-  return resultado;
-}
-
-function ehLinhaDeAcordes(linha: string): boolean {
-  const tokens = linha.trim().split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return false;
-  return tokens.every((t) => ehAcorde(t));
-}
-
+/** Rebuild from original anchors: growing chords consume padding, never tokens. */
 export function transporCifra(cifra: string, semitons: number): string {
-  if (!semitons) return cifra;
-  const preferirBemol = semitons < 0;
-  const linhas = cifra.split("\n");
-  return linhas
-    .map((linha) => {
-      if (!ehLinhaDeAcordes(linha)) return linha;
-      const regexToken = /\S+/g;
-      let resultado = "";
-      let cursor = 0;
-      let m: RegExpExecArray | null;
-      while ((m = regexToken.exec(linha)) !== null) {
-        const inicio = m.index;
-        const fim = inicio + m[0].length;
-        resultado += linha.slice(cursor, inicio);
-        const novo = transporAcorde(m[0], semitons, preferirBemol);
-        resultado += novo;
-        const diff = novo.length - m[0].length;
-        cursor = fim;
-        if (diff > 0) {
-          const restoEspacos =
-            linha.slice(cursor).match(/^ +/)?.[0].length ?? 0;
-          const consumir = Math.min(diff, restoEspacos);
-          cursor += consumir;
-        } else if (diff < 0) {
-          resultado += " ".repeat(-diff);
-        }
+  if (!semitons || !Number.isInteger(semitons)) return cifra;
+  return cifra
+    .split("\n")
+    .map((rawLine) => {
+      const line = expandTabs(rawLine);
+      if (!isChordLine(line)) return rawLine;
+      let result = "";
+      for (const match of line.matchAll(/\S+/g)) {
+        const column = Math.max(
+          match.index,
+          result.length ? result.length + 1 : 0,
+        );
+        result +=
+          " ".repeat(column - result.length) +
+          transporAcorde(match[0], semitons);
       }
-      resultado += linha.slice(cursor);
-      return resultado.trimEnd();
+      return result;
     })
     .join("\n");
 }
 
 export function formatarSemitons(semitons: number): string {
-  if (semitons === 0) return "0";
   return semitons > 0 ? `+${semitons}` : `${semitons}`;
 }
 
@@ -142,12 +81,5 @@ export function transporTom(
   semitons: number,
 ): string | null {
   if (!tom) return null;
-  if (!semitons) return tom;
-  const t = normalizarAcidente(tom.trim());
-  const m = /^([A-G])([#b]?)(.*)$/.exec(t);
-  if (!m) return tom;
-  const [, raiz, acidente, sufixo] = m;
-  return (
-    transporNota(raiz, acidente, semitons, semitons < 0) + (sufixo || "")
-  );
+  return transporAcorde(tom.trim(), semitons);
 }

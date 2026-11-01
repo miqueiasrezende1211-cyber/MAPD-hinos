@@ -1,62 +1,48 @@
 const colors = {
   light: {
-    text: "#1a1612",
-    tint: "#7a5a2a",
-
-    background: "#faf6ee",
-    foreground: "#1a1612",
-
-    card: "#ffffff",
-    cardForeground: "#1a1612",
-
-    primary: "#1d3557",
-    primaryForeground: "#faf6ee",
-
-    secondary: "#efe7d3",
-    secondaryForeground: "#3d3526",
-
-    muted: "#efe7d3",
-    mutedForeground: "#7a6f5a",
-
-    accent: "#c8932b",
-    accentForeground: "#1a1612",
-
-    destructive: "#b14747",
-    destructiveForeground: "#ffffff",
-
-    border: "#e3d9c2",
-    input: "#e3d9c2",
+    text: "#0C2038",
+    tint: "#0867AD",
+    background: "#F4F7FA",
+    foreground: "#0C2038",
+    card: "#FFFFFF",
+    cardForeground: "#0C2038",
+    primary: "#061B31",
+    primaryForeground: "#FFFFFF",
+    secondary: "#E8F1F9",
+    secondaryForeground: "#123E62",
+    muted: "#E8EFF5",
+    mutedForeground: "#58697B",
+    accent: "#0867AD",
+    accentForeground: "#FFFFFF",
+    destructive: "#B42338",
+    destructiveForeground: "#FFFFFF",
+    border: "#DCE4EC",
+    input: "#A8BACB",
+    chorusBackground: "#E8F3FC",
+    chorusBorder: "#2B9DF5",
   },
-
   dark: {
-    text: "#f0e9d6",
-    tint: "#e1b95a",
-
-    background: "#15110b",
-    foreground: "#f0e9d6",
-
-    card: "#1f1a12",
-    cardForeground: "#f0e9d6",
-
-    primary: "#e1b95a",
-    primaryForeground: "#15110b",
-
-    secondary: "#2a2218",
-    secondaryForeground: "#e8dec5",
-
-    muted: "#2a2218",
-    mutedForeground: "#9b8e72",
-
-    accent: "#e1b95a",
-    accentForeground: "#15110b",
-
-    destructive: "#c66b6b",
-    destructiveForeground: "#15110b",
-
-    border: "#33291c",
-    input: "#33291c",
+    text: "#EDF4FB",
+    tint: "#8CCFFF",
+    background: "#10283E",
+    foreground: "#EDF4FB",
+    card: "#0B2034",
+    cardForeground: "#EDF4FB",
+    primary: "#8CCFFF",
+    primaryForeground: "#061B31",
+    secondary: "#173A57",
+    secondaryForeground: "#D5EBFC",
+    muted: "#173A57",
+    mutedForeground: "#AEC0D1",
+    accent: "#8CCFFF",
+    accentForeground: "#061B31",
+    destructive: "#FFB2BE",
+    destructiveForeground: "#49101D",
+    border: "#294157",
+    input: "#627E96",
+    chorusBackground: "#143A58",
+    chorusBorder: "#8CCFFF",
   },
-
   radius: 12,
 };
 

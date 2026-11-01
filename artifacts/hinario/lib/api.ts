@@ -35,27 +35,38 @@ async function apiFetch<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
-  const { token, headers, ...rest } = options;
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    headers: {
-      "content-type": "application/json",
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-      ...(headers ?? {}),
-    },
-  });
+  const { token, headers, signal, ...rest } = options;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  const timeout = setTimeout(abort, 10_000);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...rest,
+      signal: controller.signal,
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(headers ?? {}),
+      },
+    });
 
-  if (!response.ok) {
-    const bodyText = await response.text();
-    throw new Error(
-      bodyText || `API ${response.status} ${response.statusText}`,
-    );
-  }
+    if (!response.ok) {
+      const bodyText = await response.text();
+      throw new Error(
+        bodyText || `API ${response.status} ${response.statusText}`,
+      );
+    }
 
-  if (response.status === 204) {
-    return undefined as T;
+    if (response.status === 204) {
+      return undefined as T;
+    }
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener("abort", abort);
   }
-  return (await response.json()) as T;
 }
 
 export async function login(email: string, senha: string) {
@@ -66,13 +77,15 @@ export async function login(email: string, senha: string) {
 }
 
 export async function fetchMe(token: string) {
-  return apiFetch<{ user: { sub: string; email: string; role: "admin" | "editor" } }>(
-    "/auth/me",
-    { token },
-  );
+  return apiFetch<{
+    user: { sub: string; email: string; role: "admin" | "editor" };
+  }>("/auth/me", { token });
 }
 
-export async function listHinos(query = "") {
+export async function listHinos(
+  query = "",
+  options: { signal?: AbortSignal } = {},
+) {
   const q = query.trim();
   const suffix = q ? `?q=${encodeURIComponent(q)}` : "";
   return apiFetch<{
@@ -84,10 +97,13 @@ export async function listHinos(query = "") {
       tipo: string | null;
       possuiCifra: boolean;
     }>;
-  }>(`/hinos${suffix}`);
+  }>(`/hinos${suffix}`, options);
 }
 
-export async function getHino(numero: number) {
+export async function getHino(
+  numero: number,
+  options: { signal?: AbortSignal } = {},
+) {
   return apiFetch<{
     item: {
       numero: number;
@@ -98,7 +114,7 @@ export async function getHino(numero: number) {
       possuiCifra: boolean;
       cifra: string | null;
     };
-  }>(`/hinos/${numero}`);
+  }>(`/hinos/${numero}`, options);
 }
 
 export async function getNextHinoNumber(token: string) {

@@ -1,7 +1,7 @@
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   Platform,
   Pressable,
@@ -15,23 +15,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHinos } from "@/contexts/HinosContext";
 import { useFavoritos } from "@/contexts/FavoritosContext";
 import { useColors } from "@/hooks/useColors";
+import { useReadingPreference } from "@/hooks/useReadingPreference";
+import { LetraContent } from "@/components/LetraContent";
+import { theme } from "@/constants/theme";
 
 const FONT_STEPS = [16, 18, 20, 22, 24, 26, 28];
-
-type Bloco = { texto: string; coro: boolean };
-
-function parseLetra(raw: string): Bloco[] {
-  const limpo = raw.replace(/\r\n/g, "\n").replace(/[ \t]+\n/g, "\n").trim();
-  const partes = limpo.split(/\n{2,}/);
-  return partes
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0)
-    .map((p) => {
-      const coro = /^\*\*[\s\S]*\*\*$/.test(p);
-      const texto = p.replace(/\*\*/g, "").trim();
-      return { texto, coro };
-    });
-}
 
 export default function HinoDetailScreen() {
   const colors = useColors();
@@ -43,13 +31,15 @@ export default function HinoDetailScreen() {
 
   const hino = useMemo(
     () => hinos.find((h) => h.numero.toString() === numero),
-    [numero],
+    [numero, hinos],
   );
   const cifraDisponivel = Boolean(hino?.possuiCifra);
 
-  const [fontIdx, setFontIdx] = useState(2);
-  const fontSize = FONT_STEPS[fontIdx] ?? 20;
-  const lineHeight = fontSize * 1.6;
+  const {
+    fontIdx,
+    fontSize,
+    stepFont: changeFont,
+  } = useReadingPreference("letra", FONT_STEPS, 2);
 
   if (!hino) {
     return (
@@ -60,9 +50,7 @@ export default function HinoDetailScreen() {
         ]}
       >
         <Feather name="book-open" size={40} color={colors.mutedForeground} />
-        <Text
-          style={[styles.notFoundTitle, { color: colors.foreground }]}
-        >
+        <Text style={[styles.notFoundTitle, { color: colors.foreground }]}>
           Hino não encontrado
         </Text>
       </View>
@@ -79,16 +67,9 @@ export default function HinoDetailScreen() {
   };
 
   const stepFont = (delta: number) => {
-    setFontIdx((idx) => {
-      const next = Math.max(0, Math.min(FONT_STEPS.length - 1, idx + delta));
-      if (next !== idx && Platform.OS !== "web") {
-        Haptics.selectionAsync();
-      }
-      return next;
-    });
+    if (Platform.OS !== "web") void Haptics.selectionAsync();
+    changeFont(delta);
   };
-
-  const webBottomInset = Platform.OS === "web" ? 34 : 0;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -103,7 +84,13 @@ export default function HinoDetailScreen() {
               accessibilityLabel={
                 fav ? "Remover dos favoritos" : "Marcar como favorito"
               }
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.6 : 1,
+                minWidth: theme.touchTarget,
+                minHeight: theme.touchTarget,
+                alignItems: "center",
+                justifyContent: "center",
+              })}
             >
               <Feather
                 name="star"
@@ -117,9 +104,12 @@ export default function HinoDetailScreen() {
 
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: 24,
+          paddingHorizontal: 20,
+          maxWidth: theme.readingWidth,
+          width: "100%",
+          alignSelf: "center",
           paddingTop: 8,
-          paddingBottom: insets.bottom + webBottomInset + 100,
+          paddingBottom: insets.bottom + 112,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -145,9 +135,7 @@ export default function HinoDetailScreen() {
           <Text style={[styles.tituloHino, { color: colors.foreground }]}>
             {hino.titulo}
           </Text>
-          <View
-            style={[styles.divider, { backgroundColor: colors.accent }]}
-          />
+          <View style={[styles.divider, { backgroundColor: colors.accent }]} />
 
           {(hino.tom || hino.possuiCifra) && (
             <View style={styles.metaRow}>
@@ -170,10 +158,7 @@ export default function HinoDetailScreen() {
                     Tom
                   </Text>
                   <Text
-                    style={[
-                      styles.tomChipValue,
-                      { color: colors.foreground },
-                    ]}
+                    style={[styles.tomChipValue, { color: colors.foreground }]}
                   >
                     {hino.tom}
                   </Text>
@@ -199,11 +184,15 @@ export default function HinoDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Ver cifra do hino"
                 >
-                  <Feather name="music" size={14} color={colors.background} />
+                  <Feather
+                    name="music"
+                    size={14}
+                    color={colors.accentForeground}
+                  />
                   <Text
                     style={[
                       styles.cifraBtnText,
-                      { color: colors.background },
+                      { color: colors.accentForeground },
                     ]}
                   >
                     Ver cifra
@@ -214,35 +203,14 @@ export default function HinoDetailScreen() {
           )}
         </View>
 
-        <View style={{ gap: fontSize * 0.9 }}>
-          {parseLetra(hino.letra).map((bloco, i) => (
-            <Text
-              key={i}
-              selectable
-              style={[
-                styles.letra,
-                {
-                  color: bloco.coro ? colors.accent : colors.foreground,
-                  fontSize,
-                  lineHeight,
-                  fontFamily: bloco.coro
-                    ? "Merriweather_700Bold"
-                    : "Merriweather_400Regular",
-                  fontStyle: bloco.coro ? "italic" : "normal",
-                },
-              ]}
-            >
-              {bloco.texto}
-            </Text>
-          ))}
-        </View>
+        <LetraContent letra={hino.letra} fontSize={fontSize} />
       </ScrollView>
 
       <View
         style={[
           styles.fontBar,
           {
-            bottom: insets.bottom + webBottomInset + 16,
+            bottom: insets.bottom + 16,
             backgroundColor: colors.card,
             borderColor: colors.border,
             borderRadius: 999,
@@ -256,6 +224,8 @@ export default function HinoDetailScreen() {
             styles.fontBtn,
             { opacity: fontIdx === 0 ? 0.35 : pressed ? 0.6 : 1 },
           ]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: fontIdx === 0 }}
           accessibilityLabel="Diminuir fonte"
         >
           <Feather name="minus" size={18} color={colors.foreground} />
@@ -264,7 +234,9 @@ export default function HinoDetailScreen() {
           style={[styles.fontDivider, { backgroundColor: colors.border }]}
         />
         <View style={styles.fontDisplay}>
-          <Text style={[styles.fontSizeLabel, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.fontSizeLabel, { color: colors.mutedForeground }]}
+          >
             Tamanho
           </Text>
           <Text style={[styles.fontSizeValue, { color: colors.foreground }]}>
@@ -281,13 +253,11 @@ export default function HinoDetailScreen() {
             styles.fontBtn,
             {
               opacity:
-                fontIdx === FONT_STEPS.length - 1
-                  ? 0.35
-                  : pressed
-                    ? 0.6
-                    : 1,
+                fontIdx === FONT_STEPS.length - 1 ? 0.35 : pressed ? 0.6 : 1,
             },
           ]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: fontIdx === FONT_STEPS.length - 1 }}
           accessibilityLabel="Aumentar fonte"
         >
           <Feather name="plus" size={18} color={colors.foreground} />
@@ -358,17 +328,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    minHeight: theme.touchTarget,
     borderRadius: 999,
     borderWidth: 1,
   },
   cifraBtnText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
-  },
-  letra: {
-    fontFamily: "Merriweather_400Regular",
-    letterSpacing: 0.1,
   },
   fontBar: {
     position: "absolute",
@@ -385,8 +352,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fontBtn: {
-    width: 44,
-    height: 44,
+    width: theme.touchTarget,
+    height: theme.touchTarget,
     alignItems: "center",
     justifyContent: "center",
   },

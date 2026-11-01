@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import Feather from "@expo/vector-icons/Feather";
+import React, { useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -9,6 +10,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -17,200 +20,246 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { login, isAuthenticated, user, logout } = useAuth();
-
+  const passwordInput = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-
   async function handleLogin() {
+    if (loading || !email.trim() || !senha) return;
     setErro(null);
     setLoading(true);
     try {
-      await login(email, senha);
+      await login(email.trim(), senha);
       router.replace("/admin");
     } catch {
-      setErro("Falha no login. Verifique email e senha.");
+      setErro("Não foi possível entrar. Confira seu email, senha e conexão.");
     } finally {
       setLoading(false);
     }
   }
-
-  async function handleLogout() {
-    await logout();
-    setEmail("");
-    setSenha("");
-  }
-
+  const disabled = loading || !email.trim() || !senha;
   return (
-    <View
-      style={[
+    <KeyboardAwareScrollViewCompat
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={[
         styles.root,
-        { backgroundColor: colors.background, paddingTop: insets.top + 20 },
+        { paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Text style={[styles.title, { color: colors.foreground }]}>Acesso Admin</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-        Faça login para cadastrar, editar e excluir letras e cifras.
+      <Text
+        accessibilityRole="header"
+        style={[styles.title, { color: colors.foreground }]}
+      >
+        Acesso administrativo
       </Text>
-
-      {isAuthenticated && user ? (
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Sessão ativa
-          </Text>
-          <Text style={[styles.text, { color: colors.mutedForeground }]}>
-            {user.nome} ({user.email}) - {user.papel}
-          </Text>
-          <View style={styles.row}>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+        Cadastre e organize as letras e cifras do ministério.
+      </Text>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        {isAuthenticated && user ? (
+          <>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Sessão ativa
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+              {user.nome} · {user.papel}
+            </Text>
             <Pressable
-              onPress={() => router.push("/admin")}
-              style={[
-                styles.button,
-                { backgroundColor: colors.primary, borderRadius: colors.radius },
-              ]}
+              accessibilityRole="button"
+              onPress={() => router.replace("/admin")}
+              style={[styles.button, { backgroundColor: colors.primary }]}
             >
-              <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
-                Ir para Admin
+              <Text
+                style={[styles.buttonText, { color: colors.primaryForeground }]}
+              >
+                Abrir administração
               </Text>
             </Pressable>
             <Pressable
-              onPress={handleLogout}
-              style={[
-                styles.button,
-                { backgroundColor: colors.secondary, borderRadius: colors.radius },
-              ]}
+              accessibilityRole="button"
+              onPress={async () => {
+                await logout();
+                setEmail("");
+                setSenha("");
+              }}
+              style={[styles.button, { backgroundColor: colors.secondary }]}
             >
               <Text style={[styles.buttonText, { color: colors.foreground }]}>
-                Sair
+                Sair da conta
               </Text>
             </Pressable>
-          </View>
-        </View>
-      ) : (
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={[
-              styles.input,
-              {
-                color: colors.foreground,
-                borderColor: colors.border,
-                backgroundColor: colors.background,
-                borderRadius: colors.radius,
-              },
-            ]}
-            placeholderTextColor={colors.mutedForeground}
-          />
-          <TextInput
-            value={senha}
-            onChangeText={setSenha}
-            placeholder="Senha"
-            secureTextEntry
-            style={[
-              styles.input,
-              {
-                color: colors.foreground,
-                borderColor: colors.border,
-                backgroundColor: colors.background,
-                borderRadius: colors.radius,
-              },
-            ]}
-            placeholderTextColor={colors.mutedForeground}
-          />
-          {erro ? <Text style={[styles.error, { color: "#d7263d" }]}>{erro}</Text> : null}
-          <Pressable
-            onPress={handleLogin}
-            disabled={loading || !email || !senha}
-            style={[
-              styles.button,
-              {
-                backgroundColor: colors.primary,
-                borderRadius: colors.radius,
-                opacity: loading || !email || !senha ? 0.6 : 1,
-              },
-            ]}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.primaryForeground} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
-                Entrar
+          </>
+        ) : (
+          <>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Email
+            </Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="seu@email.com"
+              accessibilityLabel="Email"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInput.current?.focus()}
+              editable={!loading}
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.input,
+                {
+                  color: colors.foreground,
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+              ]}
+            />
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Senha
+            </Text>
+            <View
+              style={[
+                styles.password,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
+              <TextInput
+                ref={passwordInput}
+                value={senha}
+                onChangeText={setSenha}
+                placeholder="Sua senha"
+                accessibilityLabel="Senha"
+                secureTextEntry={!visible}
+                autoCapitalize="none"
+                autoComplete="current-password"
+                textContentType="password"
+                returnKeyType="go"
+                onSubmitEditing={() => void handleLogin()}
+                editable={!loading}
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.passwordInput, { color: colors.foreground }]}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={visible ? "Ocultar senha" : "Mostrar senha"}
+                onPress={() => setVisible((v) => !v)}
+                style={styles.eye}
+              >
+                <Feather
+                  name={visible ? "eye-off" : "eye"}
+                  size={20}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+            </View>
+            {erro && (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.error, { color: colors.destructive }]}
+              >
+                {erro}
               </Text>
             )}
-          </Pressable>
-        </View>
-      )}
-    </View>
+            <Pressable
+              onPress={() => void handleLogin()}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityState={{ disabled, busy: loading }}
+              style={[
+                styles.button,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: disabled ? 0.55 : 1,
+                },
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.primaryForeground} />
+              ) : (
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: colors.primaryForeground },
+                  ]}
+                >
+                  Entrar
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
+      </View>
+    </KeyboardAwareScrollViewCompat>
   );
 }
-
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
-    paddingHorizontal: 20,
-    gap: 10,
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
+    padding: 20,
+    gap: 12,
   },
-  title: {
-    fontFamily: "Merriweather_700Bold",
-    fontSize: 30,
-  },
-  subtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
-    marginBottom: 8,
-  },
+  title: { fontFamily: theme.fonts.heading, fontSize: 28, lineHeight: 39 },
+  subtitle: { fontFamily: theme.fonts.ui, fontSize: 15, lineHeight: 24 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 14,
-    gap: 10,
+    borderRadius: 18,
+    padding: 20,
+    marginTop: 8,
+    gap: 12,
   },
-  cardTitle: {
-    fontFamily: "Inter_600SemiBold",
+  label: { fontFamily: theme.fonts.uiSemibold, fontSize: 14 },
+  input: {
+    minHeight: 52,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    fontFamily: theme.fonts.ui,
     fontSize: 16,
   },
-  text: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
+  password: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  input: {
-    height: 46,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+  passwordInput: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: theme.fonts.ui,
+    fontSize: 16,
   },
-  button: {
-    height: 46,
+  eye: {
+    width: 48,
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 14,
   },
-  buttonText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+  button: {
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    borderRadius: 26,
   },
-  error: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-    flexWrap: "wrap",
-  },
+  buttonText: { fontFamily: theme.fonts.uiSemibold, fontSize: 15 },
+  error: { fontFamily: theme.fonts.ui, fontSize: 14, lineHeight: 22 },
 });

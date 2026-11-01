@@ -11,7 +11,7 @@
     "splash": {
       "image": "../../logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1d3557"
+      "backgroundColor": "#061B31"
     },
     "ios": {
       "supportsTablet": false
@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "../../logo.png",
-        "backgroundColor": "#1d3557"
+        "backgroundColor": "#061B31"
       },
       "package": "com.miqueiasrezende1211cyber.hinario"
     },

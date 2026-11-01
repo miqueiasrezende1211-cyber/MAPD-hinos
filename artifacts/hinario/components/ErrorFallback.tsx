@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import { reloadAppAsync } from "expo";
 import React, { useState } from "react";
 import {
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { theme } from "@/constants/theme";
 import { useColors } from "@/hooks/useColors";
 
 export type ErrorFallbackProps = {
@@ -53,7 +54,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
       {__DEV__ ? (
         <Pressable
           onPress={() => setIsModalVisible(true)}
-          accessibilityLabel="View error details"
+          accessibilityLabel="Ver detalhes do erro"
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.topButton,
@@ -70,14 +71,15 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.foreground }]}>
-          Something went wrong
+          Não foi possível continuar
         </Text>
 
         <Text style={[styles.message, { color: colors.mutedForeground }]}>
-          Please reload the app to continue.
+          Reabra o hinário para continuar a leitura.
         </Text>
 
         <Pressable
+          accessibilityRole="button"
           onPress={handleRestart}
           style={({ pressed }) => [
             styles.button,
@@ -89,12 +91,9 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           ]}
         >
           <Text
-            style={[
-              styles.buttonText,
-              { color: colors.primaryForeground },
-            ]}
+            style={[styles.buttonText, { color: colors.primaryForeground }]}
           >
-            Try Again
+            Tentar novamente
           </Text>
         </Pressable>
       </View>
@@ -120,11 +119,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                 ]}
               >
                 <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                  Error Details
+                  Detalhes do erro
                 </Text>
                 <Pressable
                   onPress={() => setIsModalVisible(false)}
-                  accessibilityLabel="Close error details"
+                  accessibilityLabel="Fechar detalhes do erro"
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.closeButton,
@@ -188,12 +187,14 @@ const styles = StyleSheet.create({
     maxWidth: 600,
   },
   title: {
+    fontFamily: theme.fonts.heading,
     fontSize: 28,
     fontWeight: "700",
     textAlign: "center",
     lineHeight: 40,
   },
   message: {
+    fontFamily: theme.fonts.ui,
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
@@ -201,8 +202,8 @@ const styles = StyleSheet.create({
   topButton: {
     position: "absolute",
     right: 16,
-    width: 44,
-    height: 44,
+    width: theme.touchTarget,
+    height: theme.touchTarget,
     borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
@@ -253,8 +254,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: theme.touchTarget,
+    height: theme.touchTarget,
     alignItems: "center",
     justifyContent: "center",
   },
