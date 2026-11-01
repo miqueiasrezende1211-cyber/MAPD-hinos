@@ -1,0 +1,31 @@
+HINARIO MAPD — PRONTO PARA O DONO DA CONTA GERAR O APK
+
+Este pacote contem o projeto preparado. NAO e um APK instalavel.
+O APK ainda precisa ser compilado usando a conta Expo do proprietario.
+
+COMO TERMINAR
+1. Extraia toda a pasta do ZIP em um computador.
+2. Abra GERAR-APK.cmd (no Windows).
+3. Autorize o login da conta Expo do projeto Hinario pelo link/codigo exibido.
+4. Confira a chave Android original em Expo > Credentials e confirme no comando.
+5. Aguarde. O arquivo MAPD-Hinario-1.1.0-<versao>.apk sera salvo em Downloads.
+
+Se a janela fechar, abra GERAR-APK.cmd de novo: ele retoma a compilacao salva.
+No computador do Mateus, o resultado fica em C:\Users\MATEUS\Downloads.
+Em outro computador, fica em Downloads do usuario que executar.
+
+Se faltar Node/pnpm, instale Node.js 24 e pnpm 10.34.4.
+Com Node/npm instalado: npm install -g pnpm@10.34.4
+No macOS/Linux: node scripts/gerar-apk.cjs
+
+IMPORTANTE
+- O Expo Go no telefone nao gera APK. O telefone pode autorizar o login no navegador,
+  mas e preciso um computador executando o roteiro (ou uma integracao web separada).
+- O pacote nao contem senhas, tokens de conta, .env, chaves de assinatura ou banco exportado.
+- O dono da conta nao precisa enviar a senha ao Mateus.
+- Para instalar por cima do app atual, use a mesma chave Android de assinatura.
+- As futuras atualizacoes do app estao preparadas no canal production, mas a publicacao
+  automatica depende do codigo atual no GitHub, do segredo EXPO_TOKEN e do workflow.
+
+Instrucoes completas: docs/continuar-apk.md
+Detalhes do canal e GitHub Actions: docs/atualizacoes-expo.md
