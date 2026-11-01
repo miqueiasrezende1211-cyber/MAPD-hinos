@@ -1,0 +1,61 @@
+name: Publicar atualização do Hinário
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "artifacts/hinario/**"
+      - "lib/api-client-react/**"
+      - "lib/api-zod/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".npmrc"
+      - "tsconfig*.json"
+      - ".github/workflows/hinario-update.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hinario-update-production
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+      - name: Conferir os tipos
+        run: |
+          pnpm run typecheck:libs
+          pnpm --filter @workspace/hinario run typecheck
+      - name: Testar o aplicativo
+        run: pnpm --filter @workspace/hinario test
+      - name: Conferir autenticação Expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Configure o segredo EXPO_TOKEN deste repositório antes de publicar atualizações."
+            exit 1
+          fi
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Publicar para os APKs compatíveis
+        working-directory: artifacts/hinario
+        run: eas update --channel production --platform android --environment production --message "main $GITHUB_SHA" --non-interactive

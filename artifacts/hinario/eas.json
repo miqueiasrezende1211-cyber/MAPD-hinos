@@ -18,7 +18,12 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "production",
+      "environment": "production",
+      "autoIncrement": true,
+      "pnpm": "10.34.4",
+      "node": "24.22.1"
     },
     "production": {
       "env": {
@@ -27,7 +32,11 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "channel": "production",
+      "environment": "production",
+      "pnpm": "10.34.4",
+      "node": "24.22.1"
     }
   },
   "submit": {

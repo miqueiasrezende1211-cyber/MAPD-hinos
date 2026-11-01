@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hinário",
     "slug": "hinario",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "../../logo.png",
     "scheme": "hinario",
@@ -44,6 +44,15 @@
       "eas": {
         "projectId": "59eca185-10bd-4706-93fe-f8de89079c65"
       }
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/59eca185-10bd-4706-93fe-f8de89079c65",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
